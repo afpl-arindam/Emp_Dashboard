@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Employee Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+  <header class="topbar">
+    <h1>Employee Dashboard</h1>
+
+    <div class="stats">
+      <div class="stat">
+        <span id="totalCount">--</span>
+        <small>Total</small>
+      </div>
+
+      <div class="stat">
+        <span id="activeCount">--</span>
+        <small>Active</small>
+      </div>
+    </div>
+  </header>
+
+  <div class="search-wrapper">
+    <input id="searchInput" placeholder="Search employees...">
+  </div>
+
+  <div id="resultCount"></div>
+
+  <div id="loader" class="loader">Loading...</div>
+
+  <div id="results" class="grid"></div>
+
+</div>
+
+<div id="toast"></div>
+
+<!-- Floating Theme Button -->
+<button id="themeToggle" class="theme-toggle">🌙</button>
+
+<script src="script.js"></script>
+</body>
+</html>

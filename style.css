@@ -1,0 +1,160 @@
+:root {
+  --bg: #050816;
+  --card: rgba(255,255,255,0.08);
+  --text: #e5e7eb;
+  --accent: #22c55e;
+}
+
+body.light {
+  --bg: #f5f7fb;
+  --card: rgba(255,255,255,0.7);
+  --text: #0f172a;
+}
+
+body {
+  margin: 20px;
+  font-family: system-ui;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* TOP BAR */
+.topbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.topbar h1 {
+  font-size: 26px;
+  margin: 5px;
+  color: #0bc552;
+}
+
+/* STATS */
+.stats {
+  display: flex;
+  gap: 15px;
+  position: absolute;
+  right: 70px;
+}
+
+.stat {
+  background: var(--card);
+  padding: 8px 12px;
+  border-radius: 10px;
+  text-align: center;
+  backdrop-filter: blur(12px);
+}
+
+.stat span {
+  display: block;
+  color: var(--accent);
+  font-weight: bold;
+}
+
+/* SEARCH */
+.search-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+input {
+  width: 50%;
+  min-width: 260px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: var(--card);
+  color: var(--text);
+  backdrop-filter: blur(12px);
+}
+
+/* RESULT COUNT */
+#resultCount {
+  text-align: center;
+  margin-bottom: 15px;
+  color: #9ca3af;
+}
+
+/* GRID */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+/* CARD */
+.card {
+  background: var(--card);
+  padding: 14px;
+  border-radius: 14px;
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* BADGE */
+.badge {
+  padding: 3px 8px;
+  background: rgba(34,197,94,0.2);
+  color: var(--accent);
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+/* LOADER */
+.loader {
+  text-align: center;
+  margin: 20px;
+  display: none;
+  color: var(--accent);
+}
+
+/* TOAST */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--accent);
+  padding: 10px 14px;
+  border-radius: 8px;
+  opacity: 0;
+  transition: 0.3s;
+}
+
+#toast.show {
+  opacity: 1;
+}
+
+/* THEME BUTTON */
+.theme-toggle {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 9999;
+
+  width: 42px;
+  height: 42px;
+
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.15);
+
+  background: var(--card);
+  color: var(--text);
+
+  backdrop-filter: blur(14px);
+
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 18px;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.08);
+}
