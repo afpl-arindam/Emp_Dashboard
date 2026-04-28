@@ -185,13 +185,21 @@ function render(data) {
 
   const edit = document.createElement("button");
   edit.textContent = "✏️";
+  edit.title = "Edit";
   edit.onclick = () => openEditModal(emp);
+
+  const copy = document.createElement("button");
+  copy.textContent = "📄";
+  copy.title = "Duplicate";
+  copy.onclick = () => duplicateEmployee(emp);
 
   const del = document.createElement("button");
   del.textContent = "🗑";
+  del.title = "Delete";
   del.onclick = () => confirmDelete(emp);
 
   right.appendChild(edit);
+  right.appendChild(copy);
   right.appendChild(del);
 
   top.appendChild(left);
@@ -245,6 +253,7 @@ if (toggle) {
   });
 }
 
+//card
 function createSection(title, fields = []) {
   const wrapper = document.createElement("div");
 
@@ -260,7 +269,6 @@ function createSection(title, fields = []) {
 
     const span = document.createElement("span");
 
-    // 🔥 IMPORTANT CHANGE
     if (value instanceof HTMLElement) {
       span.appendChild(value);
     } else {
@@ -276,6 +284,8 @@ function createSection(title, fields = []) {
   return wrapper;
 }
 
+
+//Status Dot
 function createStatusDot(status) {
   const dot = document.createElement("span");
   dot.className = "status-dot " + (status === "active" ? "green" : "red");
@@ -435,7 +445,7 @@ async function saveEdit() {
   try {
 
     const empDesig = document.getElementById("editDesig").value;
-    const superDesig = document.getElementById("editSuperRole").value;
+    const superDesig = document.getElementById("editSuperDesig").value;
 
     if (!validateHierarchy(empDesig, superDesig)) {
       toast("Employee must be LOWER than Super designation");
@@ -474,8 +484,48 @@ async function saveEdit() {
   }
 }
 
-//Caccle Edit
+//Cancle Edit
 document.getElementById("cancelEdit").onclick = closeModal;
+
+//Duplicate
+function duplicateEmployee(emp) {
+  // open ADD modal
+  document.getElementById("addModal").classList.remove("hidden");
+  document.getElementById("addTitle").innerText = "📄 Duplicate Employee";
+
+  // fill dropdowns first
+  fillAddDropdowns();
+
+  // fill values (copy from selected employee)
+  document.getElementById("addEmpId").value = "";
+  document.getElementById("addName").value = emp.name || "";
+
+  document.getElementById("addDesig").value = emp.designation || "BM";
+
+  document.getElementById("addState").value = emp.state || "";
+  document.getElementById("addZone").value = emp.zone || "";
+
+  document.getElementById("addBranchId").value = emp.branch_id || "";
+  document.getElementById("addBranch").value = emp.branch_name || "";
+
+  document.getElementById("addSuperId").value = emp.super_id || "";
+  document.getElementById("addSuperName").value = emp.super_name || "";
+
+  filterSuperRoles("addDesig", "addSuperDesig");
+
+  // set super designation if valid
+  const superSelect = document.getElementById("addSuperDesig");
+ 
+  if ([...superSelect.options].some(o => o.value === emp.super_designation)) {
+    superSelect.value = emp.super_designation;
+  }
+
+  document.getElementById("addStatus").value =
+    (emp.status || "active").toLowerCase();
+
+  // clear password ALWAYS
+  document.getElementById("addPassword").value = "";
+}
 
 
 //Delete
@@ -521,13 +571,33 @@ function confirmDelete(emp) {
 }
 
 //Add Button
-document.getElementById("addBtn").onclick = () => {
-  document.getElementById("addModal").classList.remove("hidden");
-  fillAddDropdowns();
-};
+window.addEventListener("load", () => {
+  const addBtn = document.getElementById("addBtn");
 
+  if (!addBtn) {
+    return;
+  }
+
+  addBtn.onclick = () => {
+    console.log("Add button clicked");
+
+    const modal = document.getElementById("addModal");
+    if (!modal) {
+      return;
+    }
+
+    document.getElementById("addTitle").innerText = "➕ Add Employee";
+    modal.classList.remove("hidden");
+    fillAddDropdowns();
+  };
+
+});
+
+//Close Add
 function closeAddModal() {
   document.getElementById("addModal").classList.add("hidden");
+  document.querySelectorAll("#addModal input").forEach(i => i.value = "");
+  document.querySelectorAll("#addModal select").forEach(s => s.selectedIndex = 0);
 }
 
 //SaveADD
@@ -558,6 +628,11 @@ document.getElementById("saveAdd").onclick = async () => {
       status: document.getElementById("addStatus").value,
       password: document.getElementById("addPassword").value
     };
+
+    if (!payload.name || !payload.employee_id) {
+      toast("Name & Employee ID required");
+      return;
+}
 
     const res = await fetch(API, {
       method: "POST",

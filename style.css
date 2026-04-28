@@ -299,57 +299,54 @@ input:focus {
    BASE BUTTON (ALL BUTTONS)
 ========================= */
 
-button {
-  font-family: inherit;
+.modal-actions {
+  display: flex;
+  justify-content: center;   /* center all buttons */
+  align-items: center;
+  gap: 12px;
+  margin-top: 15px;
 }
 
-/* BASE BUTTON */
-.actions button,
+/* ALL MODAL BUTTONS SAME BASE STYLE */
 .modal-actions button {
+  min-width: 110px;
+  padding: 10px 14px;
+
+  border-radius: 10px;
   border: 1px solid var(--border);
+
   background: var(--card);
   color: var(--text);
 
-  padding: 6px 10px;
-  border-radius: 10px;
-
   cursor: pointer;
   transition: 0.2s;
+
+  font-weight: 500;
 }
 
-/* COMMON HOVER (ONLY LIFT EFFECT) */
-.actions button:hover,
+/* HOVER ONLY SCALE (NO COLOR CHANGE) */
 .modal-actions button:hover {
-  transform: translateY(-2px);
+  transform: scale(1.05);
+  border-color: var(--accent);
 }
 
-/* SAFE BUTTON (GREEN) */
+/* SAVE BUTTON */
 .safe-btn {
-  background: #16a34a;
-  color: #fff;
-  border: 1px solid #16a34a;
+  background: #16a34a !important;
+  color: #fff !important;
+  border: none !important;
 }
 
-.safe-btn:hover {
-  background: #15803d; /* darker green */
-  border-color: #15803d;
-}
-
-/* DANGER BUTTON (RED) */
+/* DELETE BUTTON */
 .danger-btn {
-  background: #ef4444;
-  color: #fff;
-  border: 1px solid #ef4444;
+  background: #ef4444 !important;
+  color: #fff !important;
+  border: none !important;
 }
 
-.danger-btn:hover {
-  background: #dc2626; /* darker red */
-  border-color: #dc2626;
-}
-
-/* DEFAULT BUTTON (Cancel / neutral) */
+/* CANCEL BUTTON (neutral) */
 .modal-actions button:first-child {
-  background: var(--card);
+  background: var(--input-bg);
   color: var(--text);
 }
 
