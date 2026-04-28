@@ -7,10 +7,12 @@ const totalCount = document.getElementById("totalCount");
 const activeCount = document.getElementById("activeCount");
 const resultCount = document.getElementById("resultCount");
 const loader = document.getElementById("loader");
+const hierarchy = ["SH", "ZM", "AM", "UM", "BM"];
 
 let timer;
 let cache = {};
 let allData = [];
+let currentEditEmp = null;
 
 /* ---------------- TOAST ---------------- */
 function toast(msg) {
@@ -64,20 +66,20 @@ async function handleSearch(q) {
 
   q = q.trim();
 
-  // ✅ SHOW ALL DATA ONLY FOR ###
+  // SHOW ALL DATA ONLY FOR ###
   if (q === "###") {
     render(allData);
     return;
   }
 
-  // ❌ EMPTY INPUT → CLEAR SCREEN
+  // EMPTY INPUT → CLEAR SCREEN
   if (!q) {
     results.innerHTML = "";
     resultCount.innerText = "Start searching...";
     return;
   }
 
-  // ❌ LESS THAN 3 CHARS → MESSAGE ONLY
+  // LESS THAN 3 CHARS → MESSAGE ONLY
   if (q.length < 3) {
     results.innerHTML = "";
     resultCount.innerText = "Type at least 3 characters...";
@@ -109,32 +111,109 @@ async function handleSearch(q) {
 }
 
 /* ---------------- RENDER ---------------- */
+// function render(data) {
+
+//   const safeData = Array.isArray(data) ? data : [];
+
+//   results.innerHTML = "";
+
+//   if (safeData.length === 0) {
+//     resultCount.innerText = "No results found";
+//     return;
+//   }
+
+//   safeData.forEach(emp => {
+//     const div = document.createElement("div");
+//     div.className = "card";
+
+//     const name = document.createElement("h3");
+//     name.textContent = emp.name || "-";
+
+//     const id = document.createElement("p");
+//     id.innerHTML = `<b>ID:</b> ${emp.employee_id ?? "-"}`;
+
+//     const state = document.createElement("p");
+//     state.innerHTML = `<b>State:</b> ${emp.state ?? "-"}`;
+
+//     const zone = document.createElement("p");
+//     zone.innerHTML = `<b>Zone:</b> ${emp.zone ?? "-"}`;
+
+//     const branch = document.createElement("p");
+//     branch.innerHTML = `<b>Branch:</b> ${emp.branch_name ?? "-"}`;
+
+//     const badge = document.createElement("span");
+//     badge.className = "badge";
+//     badge.textContent = emp.status ?? "-";
+
+//     div.appendChild(name);
+//     div.appendChild(id);
+//     div.appendChild(state);
+//     div.appendChild(zone);
+//     div.appendChild(branch);
+//     div.appendChild(badge);
+
+//     results.appendChild(div);
+//   });
+
+//   resultCount.innerText = `Showing ${safeData.length} results`;
+// }
 function render(data) {
+  results.innerHTML = "";
 
   const safeData = Array.isArray(data) ? data : [];
 
-  results.innerHTML = "";
-
-  if (safeData.length === 0) {
+  if (!safeData.length) {
     resultCount.innerText = "No results found";
     return;
   }
 
   safeData.forEach(emp => {
-    const div = document.createElement("div");
-    div.className = "card";
+  const card = document.createElement("div");
+  card.className = "card";
 
-    div.innerHTML = `
-      <h3>${emp.name || "-"}</h3>
-      <p><b>ID:</b> ${emp.employee_id}</p>
-      <p><b>State:</b> ${emp.state}</p>
-      <p><b>Zone:</b> ${emp.zone}</p>
-      <p><b>Branch:</b> ${emp.branch_name}</p>
-      <span class="badge">${emp.status}</span>
-    `;
+  const top = document.createElement("div");
+  top.className = "card-top";
 
-    results.appendChild(div);
-  });
+  const left = document.createElement("div");
+  left.className = "left";
+
+  const dot = createStatusDot(emp.status);
+  left.appendChild(dot);
+
+  const right = document.createElement("div");
+  right.className = "actions";
+
+  const edit = document.createElement("button");
+  edit.textContent = "✏️";
+  edit.onclick = () => openEditModal(emp);
+
+  const del = document.createElement("button");
+  del.textContent = "🗑";
+  del.onclick = () => confirmDelete(emp);
+
+  right.appendChild(edit);
+  right.appendChild(del);
+
+  top.appendChild(left);
+  top.appendChild(right);
+
+  card.appendChild(top);
+
+  card.appendChild(createGrid([
+    ["Name", emp.name],
+    ["Super", emp.super_name],
+    ["Emp ID", emp.employee_id],
+    ["Super ID", emp.super_id],
+    ["Desig", emp.designation],
+    ["Super Desig", emp.super_designation],
+    ["Branch ID", emp.branch_id],
+    ["Branch", emp.branch_name],
+    ["Zone", emp.zone],
+    ["State", emp.state],
+  ]));
+
+  results.appendChild(card);
+});
 
   resultCount.innerText = `Showing ${safeData.length} results`;
 }
@@ -164,4 +243,412 @@ if (toggle) {
 
     localStorage.setItem("theme", isLight ? "light" : "dark");
   });
+}
+
+function createSection(title, fields = []) {
+  const wrapper = document.createElement("div");
+
+  const h4 = document.createElement("h4");
+  h4.textContent = title;
+  wrapper.appendChild(h4);
+
+  fields.forEach(([label, value]) => {
+    const p = document.createElement("p");
+
+    const strong = document.createElement("b");
+    strong.textContent = label + ": ";
+
+    const span = document.createElement("span");
+
+    // 🔥 IMPORTANT CHANGE
+    if (value instanceof HTMLElement) {
+      span.appendChild(value);
+    } else {
+      span.textContent = value ?? "-";
+    }
+
+    p.appendChild(strong);
+    p.appendChild(span);
+
+    wrapper.appendChild(p);
+  });
+
+  return wrapper;
+}
+
+function createStatusDot(status) {
+  const dot = document.createElement("span");
+  dot.className = "status-dot " + (status === "active" ? "green" : "red");
+
+  // optional tooltip
+  dot.title = status;
+
+  return dot;
+}
+
+function createGrid(fields = []) {
+  const grid = document.createElement("div");
+  grid.className = "info-grid";
+
+  fields.forEach(([label, value]) => {
+    const item = document.createElement("div");
+
+    const l = document.createElement("span");
+    l.className = "label";
+    l.textContent = label + ": ";
+
+    const v = document.createElement("span");
+    v.className = "value";
+    v.textContent = value ?? "-";
+
+    item.appendChild(l);
+    item.appendChild(v);
+
+    grid.appendChild(item);
+  });
+
+  return grid;
+}
+
+function createItem(label, value) {
+  const div = document.createElement("div");
+
+  const l = document.createElement("span");
+  l.className = "label";
+  l.textContent = label + ": ";
+
+  const v = document.createElement("span");
+  v.className = "value";
+  v.textContent = value ?? "-";
+
+  div.appendChild(l);
+  div.appendChild(v);
+
+  return div;
+}
+
+
+// OpenEdit model
+function openEditModal(emp) {
+  currentEditEmp = emp;
+
+  const modal = document.getElementById("editModal");
+
+  modal.innerHTML = `
+    <div class="modal-box edit-card">
+
+      <div class="edit-header">
+        <h3>✏️ Edit Employee</h3>
+        <span class="mini-id">ID: ${emp.employee_id}</span>
+      </div>
+
+      <div class="edit-grid">
+
+        <div class="field">
+          <label>Employee Name</label>
+          <input id="editName" value="${emp.name || ""}">
+        </div>
+
+        <div class="field">
+          <label>Employee Designation</label>
+          <select id="editDesig"></select>
+        </div>
+
+        <div class="field">
+          <label>State</label>
+          <input id="editState" value="${emp.state || ""}">
+        </div>
+
+        <div class="field">
+          <label>Zone</label>
+          <input id="editZone" value="${emp.zone || ""}">
+        </div>
+
+        <div class="field">
+          <label>Branch ID</label>
+          <input id="editBranchId" value="${emp.branch_id || ""}">
+        </div>
+
+        <div class="field">
+          <label>Branch Name</label>
+          <input id="editBranch" value="${emp.branch_name || ""}">
+        </div>
+
+        <div class="field">
+          <label>Super ID</label>
+          <input id="editSuperId" value="${emp.super_id || ""}">
+        </div>
+
+        <div class="field">
+          <label>Super Name</label>
+          <input id="editSuperName" value="${emp.super_name || ""}">
+        </div>
+
+        <div class="field">
+          <label>Super Designation</label>
+          <select id="editSuperDesig"></select>
+        </div>
+
+        <div class="field">
+          <label>Employee Status</label>
+          <select id="editStatus">
+            <option value="active">Active</option>
+            <option value="Deactive">Deactive</option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="modal-actions">
+        <button id="cancelEdit">Cancel</button>
+        <button class="safe-btn" id="saveEdit">Save</button>
+      </div>
+
+    </div>
+  `;
+
+  modal.classList.remove("hidden");
+  fillEditDropdowns(emp);
+
+const statusSelect = document.getElementById("editStatus");
+
+const normalizedStatus =
+  (emp.status || "active").toLowerCase();
+
+if ([...statusSelect.options].some(o => o.value === normalizedStatus)) {
+  statusSelect.value = normalizedStatus;
+} else {
+  statusSelect.value = "active";
+}
+
+  document.getElementById("cancelEdit").onclick = closeModal;
+  document.getElementById("saveEdit").onclick = saveEdit;
+}
+
+//Close Model
+function closeModal() {
+  document.getElementById("editModal").classList.add("hidden");
+}
+
+//Save Edit
+async function saveEdit() {
+  try {
+
+    const empDesig = document.getElementById("editDesig").value;
+    const superDesig = document.getElementById("editSuperRole").value;
+
+    if (!validateHierarchy(empDesig, superDesig)) {
+      toast("Employee must be LOWER than Super designation");
+      return;
+    }
+
+    const url = `https://afplgis.com/api/employees/${currentEditEmp.id}`;
+
+    const updated = {
+      name: document.getElementById("editName").value,
+      designation: empDesig,
+      state: document.getElementById("editState").value,
+      zone: document.getElementById("editZone").value,
+      branch_name: document.getElementById("editBranch").value,
+      branch_id: document.getElementById("editBranchId").value,
+      super_name: document.getElementById("editSuperName").value,
+      super_id: document.getElementById("editSuperId").value,
+      super_designation: superDesig,
+      status: document.getElementById("editStatus").value,
+    };
+
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updated)
+    });
+
+    if (!res.ok) throw new Error();
+
+    toast("Updated successfully");
+    closeModal();
+    init();
+
+  } catch {
+    toast("Update failed");
+  }
+}
+
+//Caccle Edit
+document.getElementById("cancelEdit").onclick = closeModal;
+
+
+//Delete
+function confirmDelete(emp) {
+  const box = document.createElement("div");
+  box.className = "modal";
+
+  box.innerHTML = `
+    <div class="modal-box delete-box">
+      <h3>⚠️ Delete Employee</h3>
+
+      <p class="danger-text">
+        Are you sure you want to delete <b>${emp.name}</b>?
+      </p>
+
+      <div class="modal-actions">
+        <button id="no">Cancel</button>
+        <button id="yes" class="danger-btn">Delete</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(box);
+
+  box.querySelector("#no").onclick = () => box.remove();
+
+  box.querySelector("#yes").onclick = async () => {
+    try {
+      const url = `https://afplgis.com/api/employees/emp/${emp.employee_id}`;
+
+      const res = await fetch(url, { method: "DELETE" });
+
+      if (!res.ok) throw new Error();
+
+      toast("Deleted successfully");
+      box.remove();
+      init();
+
+    } catch {
+      toast("Delete failed");
+    }
+  };
+}
+
+//Add Button
+document.getElementById("addBtn").onclick = () => {
+  document.getElementById("addModal").classList.remove("hidden");
+  fillAddDropdowns();
+};
+
+function closeAddModal() {
+  document.getElementById("addModal").classList.add("hidden");
+}
+
+//SaveADD
+document.getElementById("saveAdd").onclick = async () => {
+  try {
+
+    const empDesig = document.getElementById("addDesig").value;
+    const superDesig = document.getElementById("addSuperDesig").value;
+
+    if (!validateHierarchy(empDesig, superDesig)) {
+      toast("Employee must be LOWER than Super designation");
+      return;
+    }
+
+    const payload = {
+      employee_id: document.getElementById("addEmpId").value,
+      name: document.getElementById("addName").value,
+      designation: empDesig,
+      state: document.getElementById("addState").value,
+      zone: document.getElementById("addZone").value,
+      branch_name: document.getElementById("addBranch").value,
+      branch_id: document.getElementById("addBranchId").value,
+
+      super_id: document.getElementById("addSuperId").value,
+      super_name: document.getElementById("addSuperName").value,
+      super_designation: superDesig,
+
+      status: document.getElementById("addStatus").value,
+      password: document.getElementById("addPassword").value
+    };
+
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error();
+
+    toast("Employee added successfully");
+    closeAddModal();
+    init();
+
+  } catch (e) {
+    toast("Failed to add employee");
+  }
+};
+
+// dropdown desig ADD
+function fillAddDropdowns() {
+  const empSelect = document.getElementById("addDesig");
+
+  empSelect.innerHTML = "";
+
+  hierarchy.forEach(d => {
+    empSelect.innerHTML += `<option value="${d}">${d}</option>`;
+  });
+
+  empSelect.value = "BM";
+
+  filterSuperRoles("addDesig", "addSuperDesig");
+
+  empSelect.onchange = () => {
+    filterSuperRoles("addDesig", "addSuperDesig");
+  };
+}
+
+
+//Dropdown desig Edit
+function fillEditDropdowns(emp) {
+  const empSelect = document.getElementById("editDesig");
+  const superSelect = document.getElementById("editSuperDesig");
+
+  empSelect.innerHTML = "";
+
+  hierarchy.forEach(d => {
+    empSelect.innerHTML += `<option value="${d}">${d}</option>`;
+  });
+
+  // set employee role
+  empSelect.value = emp.designation;
+
+  // filter based on employee
+  filterSuperRoles("editDesig", "editSuperDesig");
+
+  // set super role ONLY if valid
+  const exists = [...superSelect.options].some(
+    o => o.value === emp.super_designation
+  );
+
+  if (exists) {
+    superSelect.value = emp.super_designation;
+  }
+
+  // dynamic change
+  empSelect.onchange = () => {
+    filterSuperRoles("editDesig", "editSuperDesig");
+  };
+}
+
+function validateHierarchy(empDesig, superDesig) {
+  return hierarchy.indexOf(empDesig) > hierarchy.indexOf(superDesig);
+}
+
+//filter desig
+function filterSuperRoles(empSelectId, superSelectId) {
+  const empSelect = document.getElementById(empSelectId);
+  const superSelect = document.getElementById(superSelectId);
+
+  const selected = empSelect.value;
+  const empIndex = hierarchy.indexOf(selected);
+
+  superSelect.innerHTML = "";
+
+  hierarchy.forEach((role, index) => {
+    if (index < empIndex) {
+      superSelect.innerHTML += `<option value="${role}">${role}</option>`;
+    }
+  });
+
+  if (superSelect.innerHTML === "") {
+    superSelect.innerHTML = `<option value="">No superior</option>`;
+  }
 }

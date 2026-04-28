@@ -33,7 +33,7 @@
 
   <div id="resultCount"></div>
 
-  <div id="loader" class="loader">Loading...</div>
+  <div id="loader" class="loader">Loading....</div>
 
   <div id="results" class="grid"></div>
 
@@ -44,6 +44,250 @@
 <!-- Floating Theme Button -->
 <button id="themeToggle" class="theme-toggle">🌙</button>
 
+<div id="editModal" class="modal hidden">
+  <div class="modal-box edit-card">
+
+    <div class="edit-header">
+      <h3>✏️ Edit Employee</h3>
+      <span class="mini-id">ID: <b id="editEmpIdText"></b></span>
+    </div>
+
+    <div class="edit-grid">
+
+      <div class="field">
+        <label>Employee Name</label>
+        <input id="editName" type="text">
+      </div>
+
+      <div class="field">
+        <label>Employee Designation</label>
+        <select id="editDesig"></select>
+      </div>
+
+      <div class="field">
+        <label>State</label>
+        <input id="editState" type="text">
+      </div>
+
+      <div class="field">
+        <label>Zone</label>
+        <input id="editZone" type="text">
+      </div>
+
+      <div class="field">
+        <label>Branch ID</label>
+        <input id="editBranchId" type="text">
+      </div>
+
+      <div class="field">
+        <label>Branch Name</label>
+        <input id="editBranch" type="text">
+      </div>
+
+      <div class="field">
+        <label>Super ID</label>
+        <input id="editSuperId" type="text">
+      </div>
+
+      <div class="field">
+        <label>Super Name</label>
+        <input id="editSuperName" type="text">
+      </div>
+
+      <div class="field">
+        <label>Super Designation</label>
+        <select id="editSuperDesig"></select>
+      </div>
+
+      <div class="field">
+        <label>Status</label>
+        <select id="editStatus">
+          <option value="active">Active</option>
+          <option value="deactive">Deactive</option>
+        </select>
+      </div>
+
+    </div>
+
+    <div class="modal-actions">
+      <button id="cancelEdit">Cancel</button>
+      <button id="saveEdit" class="safe-btn">Save</button>
+    </div>
+
+  </div>
+</div>
+
+<button id="addBtn" class="fab">+</button>
+
+<!-- <div id="addModal" class="modal hidden">
+  <div class="modal-box edit-card">
+
+    <div class="edit-header">
+      <h3>Add Employee</h3>
+      <button onclick="closeAddModal()">✖</button>
+    </div>
+
+    <div class="edit-grid">
+
+      <div class="field">
+        <label>Employee ID</label>
+        <input id="addEmpId" placeholder="00000">
+      </div>
+
+      <div class="field">
+        <label>Super ID</label>
+        <input id="addSuperId" placeholder="00000">
+      </div>
+
+      <div class="field">
+        <label>Employee Name</label>
+        <input id="addName">
+      </div>
+
+      <div class="field">
+        <label>Super Name</label>
+        <input id="addSuperName">
+      </div>
+
+      <div class="field">
+        <label>Employee Designation</label>
+        <select id="addDesig"></select>
+      </div>
+
+      <div class="field">
+        <label>Super Designation</label>
+        <select id="addSuperDesig"></select>
+      </div>
+
+      <div class="field">
+        <label>State</label>
+        <input id="addState">
+      </div>
+
+      <div class="field">
+        <label>Zone</label>
+        <input id="addZone">
+      </div>
+
+      <div class="field">
+        <label>Branch ID</label>
+        <input id="addBranchId" placeholder="0000">
+      </div>
+
+      <div class="field">
+        <label>Branch Name</label>
+        <input id="addBranch">
+      </div>
+
+      <div class="field">
+        <label>Status</label>
+        <select id="addStatus">
+          <option value="active">Active</option>
+          <option value="inactive">Deactive</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <input id="addPassword" type="password">
+      </div>
+
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="closeAddModal()">Cancel</button>
+      <button class="safe-btn" id="saveAdd">Save</button>
+    </div>
+
+  </div>
+</div> -->
+
+
+<div id="addModal" class="modal hidden">
+  <div class="modal-box edit-card">
+
+    <div class="edit-header">
+      <h3>➕ Add Employee</h3>
+      <button onclick="closeAddModal()">✖</button>
+    </div>
+
+    <div class="edit-grid">
+
+      <div class="field">
+        <label>Employee ID</label>
+        <input id="addEmpId" placeholder="00000">
+      </div>
+
+      <div class="field">
+        <label>Super ID</label>
+        <input id="addSuperId" placeholder="00000">
+      </div>
+
+      <div class="field">
+        <label>Employee Name</label>
+        <input id="addName">
+      </div>
+
+      <div class="field">
+        <label>Super Name</label>
+        <input id="addSuperName">
+      </div>
+
+      <div class="field">
+        <label>Employee Designation</label>
+        <select id="addDesig"></select>
+      </div>
+
+      <div class="field">
+        <label>Super Designation</label>
+        <select id="addSuperDesig"></select>
+      </div>
+
+      <div class="field">
+        <label>State</label>
+        <input id="addState">
+      </div>
+
+      <div class="field">
+        <label>Zone</label>
+        <input id="addZone">
+      </div>
+
+      <div class="field">
+        <label>Branch ID</label>
+        <input id="addBranchId" placeholder="0000">
+      </div>
+
+      <div class="field">
+        <label>Branch Name</label>
+        <input id="addBranch">
+      </div>
+
+      <div class="field">
+        <label>Status</label>
+        <select id="addStatus">
+          <option value="active">Active</option>
+          <option value="deactive">Deactive</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <input id="addPassword" type="password">
+      </div>
+
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="closeAddModal()">Cancel</button>
+      <button id="saveAdd" class="safe-btn">Save</button>
+    </div>
+
+  </div>
+</div>
+
+
 <script src="script.js"></script>
+<!-- <script src="main.js"></script> -->
 </body>
 </html>
