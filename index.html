@@ -28,7 +28,7 @@
   </header>
 
   <div class="search-wrapper">
-    <input id="searchInput" placeholder="Search employees...">
+    <input id="searchInput" type="text" placeholder="Search employees...">
   </div>
 
   <div id="resultCount"></div>
@@ -194,7 +194,7 @@
 
     </div>
 
-    <div class="modal-actions">
+    <div class="modal-actions">AC
       <button onclick="closeAddModal()">Cancel</button>
       <button class="safe-btn" id="saveAdd">Save</button>
     </div>
@@ -215,7 +215,7 @@
 
       <div class="field">
         <label>Employee ID</label>
-        <input id="addEmpId" placeholder="00000">
+        <input id="addEmpId" inputmode="numeric" placeholder="00000">
       </div>
 
       <div class="field">
@@ -280,7 +280,7 @@
 
     <div class="modal-actions">
       <button onclick="closeAddModal()">Cancel</button>
-      <button id="saveAdd" class="safe-btn">Save</button>
+      <button id="saveAdd" type="button">Save</button>
     </div>
 
   </div>

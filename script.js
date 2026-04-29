@@ -13,6 +13,8 @@ let timer;
 let cache = {};
 let allData = [];
 let currentEditEmp = null;
+let currentRequest = 0;
+let isSubmitting = false;
 
 /* ---------------- TOAST ---------------- */
 function toast(msg) {
@@ -65,6 +67,7 @@ input.addEventListener("input", () => {
 async function handleSearch(q) {
 
   q = q.trim();
+  const requestId = ++currentRequest;
 
   // SHOW ALL DATA ONLY FOR ###
   if (q === "###") {
@@ -72,14 +75,14 @@ async function handleSearch(q) {
     return;
   }
 
-  // EMPTY INPUT → CLEAR SCREEN
+  // EMPTY
   if (!q) {
     results.innerHTML = "";
     resultCount.innerText = "Start searching...";
     return;
   }
 
-  // LESS THAN 3 CHARS → MESSAGE ONLY
+  // Min length
   if (q.length < 3) {
     results.innerHTML = "";
     resultCount.innerText = "Type at least 3 characters...";
@@ -89,8 +92,21 @@ async function handleSearch(q) {
   const url = `${API}?search=${encodeURIComponent(q)}`;
 
   if (cache[url]) {
-    render(cache[url]);
+    const data = cache[url];
+    delete cache[url];
+    cache[url] = data;
+
+    if (requestId !== currentRequest) return;
+
+    render(data);
+    resultCount.innerText = `Showing ${data.length} results`;
     return;
+  }
+
+  //cache clear
+  const keys = Object.keys(cache);
+  if (keys.length > 50) {
+    delete cache[keys[0]];
   }
 
   try {
@@ -99,6 +115,8 @@ async function handleSearch(q) {
     const res = await fetch(url);
     const data = await res.json();
 
+    if (requestId !== currentRequest) return;
+
     cache[url] = Array.isArray(data) ? data : [];
 
     render(cache[url]);
@@ -106,7 +124,9 @@ async function handleSearch(q) {
   } catch (e) {
     toast("API error");
   } finally {
-    hideLoader();
+    if (requestId === currentRequest) {
+      hideLoader();
+    }
   }
 }
 
@@ -167,70 +187,80 @@ function render(data) {
     return;
   }
 
+  const fragment = document.createDocumentFragment();
+
   safeData.forEach(emp => {
-  const card = document.createElement("div");
-  card.className = "card";
+    const card = document.createElement("div");
+    card.className = "card";
 
-  const top = document.createElement("div");
-  top.className = "card-top";
+    const top = document.createElement("div");
+    top.className = "card-top";
 
-  const left = document.createElement("div");
-  left.className = "left";
+    const left = document.createElement("div");
+    left.className = "left";
 
-  const dot = createStatusDot(emp.status);
-  left.appendChild(dot);
+    const dot = createStatusDot(emp.status);
+    left.appendChild(dot);
 
-  const right = document.createElement("div");
-  right.className = "actions";
+    const right = document.createElement("div");
+    right.className = "actions";
 
-  const edit = document.createElement("button");
-  edit.textContent = "✏️";
-  edit.title = "Edit";
-  edit.onclick = () => openEditModal(emp);
+    const edit = document.createElement("button");
+    edit.textContent = "✏️";
+    edit.title = "Edit";
+    edit.onclick = () => openEditModal(emp);
 
-  const copy = document.createElement("button");
-  copy.textContent = "📄";
-  copy.title = "Duplicate";
-  copy.onclick = () => duplicateEmployee(emp);
+    const copy = document.createElement("button");
+    copy.textContent = "📄";
+    copy.title = "Duplicate";
+    copy.onclick = () => duplicateEmployee(emp);
 
-  const del = document.createElement("button");
-  del.textContent = "🗑";
-  del.title = "Delete";
-  del.onclick = () => confirmDelete(emp);
+    const del = document.createElement("button");
+    del.textContent = "🗑";
+    del.title = "Delete";
+    del.onclick = () => confirmDelete(emp);
 
-  right.appendChild(edit);
-  right.appendChild(copy);
-  right.appendChild(del);
+    right.append(edit, copy, del);
 
-  top.appendChild(left);
-  top.appendChild(right);
+    top.append(left, right);
 
-  card.appendChild(top);
+    card.appendChild(top);
 
-  card.appendChild(createGrid([
-    ["Name", emp.name],
-    ["Super", emp.super_name],
-    ["Emp ID", emp.employee_id],
-    ["Super ID", emp.super_id],
-    ["Desig", emp.designation],
-    ["Super Desig", emp.super_designation],
-    ["Branch ID", emp.branch_id],
-    ["Branch", emp.branch_name],
-    ["Zone", emp.zone],
-    ["State", emp.state],
-  ]));
+    card.appendChild(createGrid([
+      ["Name", emp.name],
+      ["Super", emp.super_name],
+      ["Emp ID", emp.employee_id],
+      ["Super ID", emp.super_id],
+      ["Desig", emp.designation],
+      ["Super Desig", emp.super_designation],
+      ["Branch ID", emp.branch_id],
+      ["Branch", emp.branch_name],
+      ["Zone", emp.zone],
+      ["State", emp.state],
+    ]));
 
-  results.appendChild(card);
-});
+    fragment.appendChild(card);
+  });
+
+  // results.appendChild(card);
+  results.appendChild(fragment);
 
   resultCount.innerText = `Showing ${safeData.length} results`;
 }
 
 /* ---------------- STATS ---------------- */
+// function updateStats() {
+//   totalCount.innerText = allData.length;
+//   activeCount.innerText =
+//     allData.filter(x => x.status === "active").length;
+// }
 function updateStats() {
   totalCount.innerText = allData.length;
+
   activeCount.innerText =
-    allData.filter(x => x.status === "active").length;
+    allData.filter(x =>
+      (x.status || "").toLowerCase() === "active"
+    ).length;
 }
 
 /* ---------------- THEME ---------------- */
@@ -287,11 +317,11 @@ function createSection(title, fields = []) {
 
 //Status Dot
 function createStatusDot(status) {
-  const dot = document.createElement("span");
-  dot.className = "status-dot " + (status === "active" ? "green" : "red");
+  const s = (status || "").toLowerCase();
 
-  // optional tooltip
-  dot.title = status;
+  const dot = document.createElement("span");
+  dot.className = "status-dot " + (s === "active" ? "green" : "red");
+  dot.title = s;
 
   return dot;
 }
@@ -337,6 +367,12 @@ function createItem(label, value) {
   return div;
 }
 
+function escapeHTML(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
 
 // OpenEdit model
 function openEditModal(emp) {
@@ -344,19 +380,31 @@ function openEditModal(emp) {
 
   const modal = document.getElementById("editModal");
 
+  setTimeout(() => {
+    allowNumbers(document.getElementById("editBranchId"));
+    allowNumbers(document.getElementById("editSuperId"));
+
+    allowAlphabets(document.getElementById("editName"));
+    allowAlphabets(document.getElementById("editSuperName"));
+
+    allowAlphaNumeric(document.getElementById("editState"));
+    allowAlphaNumeric(document.getElementById("editZone"));
+    allowAlphaNumeric(document.getElementById("editBranch"));
+  }, 0);
+
   modal.innerHTML = `
     <div class="modal-box edit-card">
 
       <div class="edit-header">
         <h3>✏️ Edit Employee</h3>
-        <span class="mini-id">ID: ${emp.employee_id}</span>
+        <span class="mini-id">ID: ${escapeHTML(emp.employee_id)}</span>
       </div>
 
       <div class="edit-grid">
 
         <div class="field">
           <label>Employee Name</label>
-          <input id="editName" value="${emp.name || ""}">
+          <input id="editName" value="${escapeHTML(emp.name)}">
         </div>
 
         <div class="field">
@@ -366,32 +414,32 @@ function openEditModal(emp) {
 
         <div class="field">
           <label>State</label>
-          <input id="editState" value="${emp.state || ""}">
+          <input id="editState" value="${escapeHTML(emp.state || "")}">
         </div>
 
         <div class="field">
           <label>Zone</label>
-          <input id="editZone" value="${emp.zone || ""}">
+          <input id="editZone" value="${escapeHTML(emp.zone || "")}">
         </div>
 
         <div class="field">
           <label>Branch ID</label>
-          <input id="editBranchId" value="${emp.branch_id || ""}">
+          <input id="editBranchId" value="${escapeHTML(emp.branch_id || "")}">
         </div>
 
         <div class="field">
           <label>Branch Name</label>
-          <input id="editBranch" value="${emp.branch_name || ""}">
+          <input id="editBranch" value="${escapeHTML(emp.branch_name || "")}">
         </div>
 
         <div class="field">
           <label>Super ID</label>
-          <input id="editSuperId" value="${emp.super_id || ""}">
+          <input id="editSuperId" value="${escapeHTML(emp.super_id || "")}">
         </div>
 
         <div class="field">
           <label>Super Name</label>
-          <input id="editSuperName" value="${emp.super_name || ""}">
+          <input id="editSuperName" value="${escapeHTML(emp.super_name || "")}">
         </div>
 
         <div class="field">
@@ -403,7 +451,7 @@ function openEditModal(emp) {
           <label>Employee Status</label>
           <select id="editStatus">
             <option value="active">Active</option>
-            <option value="Deactive">Deactive</option>
+            <option value="deactive">Deactive</option>
           </select>
         </div>
 
@@ -473,7 +521,10 @@ async function saveEdit() {
       body: JSON.stringify(updated)
     });
 
-    if (!res.ok) throw new Error();
+    if (!res.ok) {
+      const msg = await res.text();
+      throw new Error(msg || "API error");
+    }
 
     toast("Updated successfully");
     closeModal();
@@ -485,7 +536,7 @@ async function saveEdit() {
 }
 
 //Cancle Edit
-document.getElementById("cancelEdit").onclick = closeModal;
+// document.getElementById("cancelEdit").onclick = closeModal;
 
 //Duplicate
 function duplicateEmployee(emp) {
@@ -538,7 +589,7 @@ function confirmDelete(emp) {
       <h3>⚠️ Delete Employee</h3>
 
       <p class="danger-text">
-        Are you sure you want to delete <b>${emp.name}</b>?
+        Are you sure you want to delete <b>${escapeHTML(emp.name)}</b>?
       </p>
 
       <div class="modal-actions">
@@ -571,26 +622,37 @@ function confirmDelete(emp) {
 }
 
 //Add Button
-window.addEventListener("load", () => {
+// window.addEventListener("load", () => {
+//   const addBtn = document.getElementById("addBtn");
+
+//   if (!addBtn) {
+//     return;
+//   }
+
+//   addBtn.onclick = () => {
+//     console.log("Add button clicked");
+
+//     const modal = document.getElementById("addModal");
+//     if (!modal) {
+//       return;
+//     }
+
+//     document.getElementById("addTitle").innerText = "➕ Add Employee";
+//     modal.classList.remove("hidden");
+//     fillAddDropdowns();
+//   };
+
+// });
+document.addEventListener("DOMContentLoaded", () => {
   const addBtn = document.getElementById("addBtn");
 
-  if (!addBtn) {
-    return;
-  }
+  if (!addBtn) return;
 
-  addBtn.onclick = () => {
-    console.log("Add button clicked");
-
-    const modal = document.getElementById("addModal");
-    if (!modal) {
-      return;
-    }
-
+  addBtn.addEventListener("click", () => {
     document.getElementById("addTitle").innerText = "➕ Add Employee";
-    modal.classList.remove("hidden");
+    document.getElementById("addModal").classList.remove("hidden");
     fillAddDropdowns();
-  };
-
+  });
 });
 
 //Close Add
@@ -601,65 +663,143 @@ function closeAddModal() {
 }
 
 //SaveADD
-document.getElementById("saveAdd").onclick = async () => {
-  try {
+// document.getElementById("saveAdd").onclick = async () => {
+//   try {
 
-    const empDesig = document.getElementById("addDesig").value;
-    const superDesig = document.getElementById("addSuperDesig").value;
+//     const empDesig = document.getElementById("addDesig").value;
+//     const superDesig = document.getElementById("addSuperDesig").value;
 
-    if (!validateHierarchy(empDesig, superDesig)) {
-      toast("Employee must be LOWER than Super designation");
-      return;
+//     if (!validateHierarchy(empDesig, superDesig)) {
+//       toast("Employee must be LOWER than Super designation");
+//       return;
+//     }
+
+//     const payload = {
+//       employee_id: document.getElementById("addEmpId").value,
+//       name: document.getElementById("addName").value,
+//       designation: empDesig,
+//       state: document.getElementById("addState").value,
+//       zone: document.getElementById("addZone").value,
+//       branch_name: document.getElementById("addBranch").value,
+//       branch_id: document.getElementById("addBranchId").value,
+
+//       super_id: document.getElementById("addSuperId").value,
+//       super_name: document.getElementById("addSuperName").value,
+//       super_designation: superDesig,
+
+//       status: document.getElementById("addStatus").value,
+//       password: document.getElementById("addPassword").value
+//     };
+
+//     if (!payload.name || !payload.employee_id) {
+//       toast("Name & Employee ID required");
+//       return;
+//     }
+
+//     if (!/^\d+$/.test(payload.employee_id)) {
+//       toast("Employee ID must be numbers only");
+//       return;
+//     }
+
+//     const res = await fetch(API, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(payload)
+//     });
+
+//     if (!res.ok) throw new Error();
+
+//     toast("Employee added successfully");
+//     closeAddModal();
+//     init();
+
+//   } catch (e) {
+//     toast("Failed to add employee");
+//   }
+// };
+const saveAddBtn = document.getElementById("saveAdd");
+
+if (saveAddBtn) {
+  saveAddBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    isSubmitting = true;
+    saveAddBtn.disabled = true;
+
+    try {
+      const empDesig = document.getElementById("addDesig").value;
+      const superDesig = document.getElementById("addSuperDesig").value;
+
+      if (!validateHierarchy(empDesig, superDesig)) {
+        toast("Employee must be LOWER than Super designation");
+        return;
+      }
+
+      const payload = {
+        employee_id: document.getElementById("addEmpId").value,
+        name: document.getElementById("addName").value,
+        designation: empDesig,
+        state: document.getElementById("addState").value,
+        zone: document.getElementById("addZone").value,
+        branch_name: document.getElementById("addBranch").value,
+        branch_id: document.getElementById("addBranchId").value,
+        super_id: document.getElementById("addSuperId").value,
+        super_name: document.getElementById("addSuperName").value,
+        super_designation: superDesig,
+        status: document.getElementById("addStatus").value,
+        password: document.getElementById("addPassword").value
+      };
+
+      const res = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error();
+
+      toast("Employee added successfully");
+      closeAddModal();
+      init();
+
+    } catch (e) {
+      toast("Failed to add employee");
     }
-
-    const payload = {
-      employee_id: document.getElementById("addEmpId").value,
-      name: document.getElementById("addName").value,
-      designation: empDesig,
-      state: document.getElementById("addState").value,
-      zone: document.getElementById("addZone").value,
-      branch_name: document.getElementById("addBranch").value,
-      branch_id: document.getElementById("addBranchId").value,
-
-      super_id: document.getElementById("addSuperId").value,
-      super_name: document.getElementById("addSuperName").value,
-      super_designation: superDesig,
-
-      status: document.getElementById("addStatus").value,
-      password: document.getElementById("addPassword").value
-    };
-
-    if (!payload.name || !payload.employee_id) {
-      toast("Name & Employee ID required");
-      return;
+    finally {
+      isSubmitting = false;
+      saveAddBtn.disabled = false;
+    }
+  });
 }
-
-    const res = await fetch(API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    if (!res.ok) throw new Error();
-
-    toast("Employee added successfully");
-    closeAddModal();
-    init();
-
-  } catch (e) {
-    toast("Failed to add employee");
-  }
-};
 
 // dropdown desig ADD
 function fillAddDropdowns() {
   const empSelect = document.getElementById("addDesig");
 
   empSelect.innerHTML = "";
+  setTimeout(() => {
+    allowNumbers(document.getElementById("addEmpId"));
+    allowNumbers(document.getElementById("addBranchId"));
+    allowNumbers(document.getElementById("addSuperId"));
+
+    allowAlphabets(document.getElementById("addName"));
+    allowAlphabets(document.getElementById("addSuperName"));
+
+    allowAlphaNumeric(document.getElementById("addState"));
+    allowAlphaNumeric(document.getElementById("addZone"));
+    allowAlphaNumeric(document.getElementById("addBranch"));
+  }, 0);
+  const fragment = document.createDocumentFragment();
 
   hierarchy.forEach(d => {
-    empSelect.innerHTML += `<option value="${d}">${d}</option>`;
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.textContent = d;
+    fragment.appendChild(opt);
   });
+
+  empSelect.appendChild(fragment);
 
   empSelect.value = "BM";
 
@@ -678,9 +818,16 @@ function fillEditDropdowns(emp) {
 
   empSelect.innerHTML = "";
 
+  const fragment = document.createDocumentFragment();
+
   hierarchy.forEach(d => {
-    empSelect.innerHTML += `<option value="${d}">${d}</option>`;
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.textContent = d;
+    fragment.appendChild(opt);
   });
+
+  empSelect.appendChild(fragment);
 
   // set employee role
   empSelect.value = emp.designation;
@@ -726,4 +873,29 @@ function filterSuperRoles(empSelectId, superSelectId) {
   if (superSelect.innerHTML === "") {
     superSelect.innerHTML = `<option value="">No superior</option>`;
   }
+}
+
+
+// numbers only
+function allowNumbers(el) {
+  el.addEventListener("input", () => {
+    el.value = el.value.replace(/\D/g, "");
+  });
+}
+
+// alphabets + space only
+function allowAlphabets(el) {
+  el.addEventListener("input", () => {
+    el.value = el.value.replace(/[^a-zA-Z\s]/g, "");
+  });
+}
+
+// alphanumeric
+function allowAlphaNumeric(el) {
+  el.addEventListener("input", () => {
+    el.value = el.value
+      .replace(/[^a-zA-Z0-9\s-]/g, "")
+      .replace(/\s{2,}/g, " ")
+      .replace(/-+/g, "-");
+  });
 }
