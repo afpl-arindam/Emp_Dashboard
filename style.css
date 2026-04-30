@@ -58,15 +58,16 @@ html, body {
   justify-content: center;
   align-items: center;
   position: relative;
+  /* position: sticky; */
 }
 
 body {
   margin: 0;
-  padding: 20px;
+  padding: 12px;
   font-family: system-ui, -apple-system, sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-height: 100vh;
+  height: 100vh;
   overflow: hidden;
   transition: background 0.3s ease, color 0.3s ease;
 }
@@ -117,6 +118,24 @@ input {
 
 .search-wrapper input {
   width: 50%;
+}
+
+.search-box {
+  position: relative;
+  width: 50%;
+}
+
+.search-box input {
+  width: 100%;
+  padding-left: 55px;
+}
+
+.search-box .icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
 }
 
 input:focus {
@@ -192,29 +211,49 @@ input:focus {
 /* TOAST */
 #toast {
   position: fixed;
-  bottom: 30px;
+  bottom: 10%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(20px);
 
-  background: var(--accent);
   color: white;
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: 10px;
 
   opacity: 0;
-  transition: 0.3s ease-in-out;
+  transition: all 0.3s ease-in-out;
+
   z-index: 9999;
+  pointer-events: none;
+
+  font-size: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
 }
 
+/* show animation */
 #toast.show {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
 
+/* SUCCESS */
+#toast.success {
+  background: #22c55e;
+}
+
+/* ERROR / DANGER */
+#toast.error {
+  background: #ef4444;
+}
+
+/* WARNING (optional) */
+#toast.warning {
+  background: #f59e0b;
+}
+
 /* THEME BUTTON */
 .theme-toggle {
   position: fixed;
-  top: 45px;
+  top: 25px;
   right: 35px;
   z-index: 200;
 
@@ -251,6 +290,32 @@ input:focus {
 .grid-row {
   display: flex;
   justify-content: space-between;
+}
+
+
+.suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 20%;
+  right: 20%;
+
+  z-index: 9999;
+
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  backdrop-filter: blur(12px);
+}
+
+.suggestions div {
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.suggestions div:hover {
+  background: rgba(255,255,255,0.08);
 }
 
 .status-dot {
@@ -621,4 +686,30 @@ button:disabled {
 
 .fab:hover {
   transform: scale(1.1);
+}
+
+.footer-credit {
+  text-align: center;
+  padding: 2px;
+  font-size: 10px;
+
+  color: var(--muted);
+
+  /* border-top: 1px solid var(--border); */
+  background: var(--bg);
+
+  /* margin-top: auto; */
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+.credit-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.credit-link:hover {
+  text-decoration: underline;
 }

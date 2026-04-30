@@ -7,20 +7,33 @@ const totalCount = document.getElementById("totalCount");
 const activeCount = document.getElementById("activeCount");
 const resultCount = document.getElementById("resultCount");
 const loader = document.getElementById("loader");
-
 const hierarchy = ["SH", "ZM", "AM", "UM", "BM"];
 
 let timer;
 let cache = {};
 let allData = [];
 let currentEditEmp = null;
+let currentRequest = 0;
+let isSubmitting = false;
+let suggestionTimer;
 
 /* ---------------- TOAST ---------------- */
-function toast(msg) {
+function toast(msg, type = "success") {
   const t = document.getElementById("toast");
+
   t.innerText = msg;
+
+  // remove old type classes
+  t.classList.remove("success", "error", "warning");
+
+  // add new type
+  t.classList.add(type);
+
   t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2000);
+
+  setTimeout(() => {
+    t.classList.remove("show");
+  }, 2000);
 }
 
 /* ---------------- LOADER ---------------- */
@@ -38,11 +51,12 @@ async function init() {
     allData = Array.isArray(data) ? data : [];
 
     updateStats();
+    // render(allData);
     results.innerHTML = "";
     resultCount.innerText = "Start searching...";
 
-  } catch {
-    toast("Failed to load data");
+  } catch (e) {
+    toast("Failed to load data","warning");
   } finally {
     hideLoader();
   }
@@ -50,32 +64,66 @@ async function init() {
 
 init();
 
-/* ---------------- SEARCH ---------------- */
+/* ---------------- SEARCH INPUT ---------------- */
 input.addEventListener("input", () => {
   clearTimeout(timer);
-  timer = setTimeout(() => handleSearch(input.value), 300);
+
+  const q = input.value;
+  showSuggestions(q);
+
+  timer = setTimeout(() => {
+    handleSearch(q);
+  }, 1000);
 });
 
+/* ---------------- SEARCH LOGIC ---------------- */
 async function handleSearch(q) {
+
   q = q.trim();
+  const requestId = ++currentRequest;
 
-  if (q === "###") return render(allData);
-
-  if (!q) {
-    results.innerHTML = "";
-    resultCount.innerText = "Start searching...";
+  // SHOW ALL DATA ONLY FOR ###
+  if (q === "###") {
+    render(allData);
     return;
   }
 
+  // EMPTY
+  if (!q) {
+    results.innerHTML = "";
+    resultCount.innerText = "Start searching...";
+    hideLoader();
+    return;
+  }
+
+  // Min length
   if (q.length < 3) {
     results.innerHTML = "";
     resultCount.innerText = "Type at least 3 characters...";
+    hideLoader();
     return;
   }
 
   const url = `${API}?search=${encodeURIComponent(q)}`;
 
-  if (cache[url]) return render(cache[url]);
+  if (cache[url]) {
+    const data = cache[url];
+    delete cache[url];
+    cache[url] = data;
+
+    if (requestId !== currentRequest) return;
+
+    render(data);
+    resultCount.innerText = `Showing ${data.length} results`;
+    hideLoader();
+    return;
+  }
+
+  //cache clear
+  const keys = Object.keys(cache);
+  if (keys.length > 50) {
+    delete cache[keys[0]];
+  }
 
   try {
     showLoader();
@@ -83,17 +131,86 @@ async function handleSearch(q) {
     const res = await fetch(url);
     const data = await res.json();
 
+    if (requestId !== currentRequest) return;
+
     cache[url] = Array.isArray(data) ? data : [];
+
     render(cache[url]);
 
-  } catch {
-    toast("API error");
+  } catch (e) {
+    toast("API error","warning");
   } finally {
-    hideLoader();
+    if (requestId === currentRequest) {
+      hideLoader();
+    }
   }
 }
 
+function isEmpty(val) {
+  return !val || val.trim() === "";
+}
+
+//must fill all box
+function validateAllRequired(ids) {
+  for (let id of ids) {
+    const el = document.getElementById(id);
+
+    if (!el || isEmpty(el.value)) {
+      toast("Please fill all required fields","error");
+      if (el) el.focus();
+      return false;
+    }
+  }
+  return true;
+}
+
 /* ---------------- RENDER ---------------- */
+// function render(data) {
+
+//   const safeData = Array.isArray(data) ? data : [];
+
+//   results.innerHTML = "";
+
+//   if (safeData.length === 0) {
+//     resultCount.innerText = "No results found";
+//     return;
+//   }
+
+//   safeData.forEach(emp => {
+//     const div = document.createElement("div");
+//     div.className = "card";
+
+//     const name = document.createElement("h3");
+//     name.textContent = emp.name || "-";
+
+//     const id = document.createElement("p");
+//     id.innerHTML = `<b>ID:</b> ${emp.employee_id ?? "-"}`;
+
+//     const state = document.createElement("p");
+//     state.innerHTML = `<b>State:</b> ${emp.state ?? "-"}`;
+
+//     const zone = document.createElement("p");
+//     zone.innerHTML = `<b>Zone:</b> ${emp.zone ?? "-"}`;
+
+//     const branch = document.createElement("p");
+//     branch.innerHTML = `<b>Branch:</b> ${emp.branch_name ?? "-"}`;
+
+//     const badge = document.createElement("span");
+//     badge.className = "badge";
+//     badge.textContent = emp.status ?? "-";
+
+//     div.appendChild(name);
+//     div.appendChild(id);
+//     div.appendChild(state);
+//     div.appendChild(zone);
+//     div.appendChild(branch);
+//     div.appendChild(badge);
+
+//     results.appendChild(div);
+//   });
+
+//   resultCount.innerText = `Showing ${safeData.length} results`;
+// }
 function render(data) {
   results.innerHTML = "";
 
@@ -103,6 +220,8 @@ function render(data) {
     resultCount.innerText = "No results found";
     return;
   }
+
+  const fragment = document.createDocumentFragment();
 
   safeData.forEach(emp => {
     const card = document.createElement("div");
@@ -114,71 +233,150 @@ function render(data) {
     const left = document.createElement("div");
     left.className = "left";
 
-    left.appendChild(createStatusDot(emp.status));
+    const dot = createStatusDot(emp.status);
+    left.appendChild(dot);
 
     const right = document.createElement("div");
     right.className = "actions";
 
     const edit = document.createElement("button");
     edit.textContent = "✏️";
+    edit.title = "Edit";
     edit.onclick = () => openEditModal(emp);
+
+    const copy = document.createElement("button");
+    copy.textContent = "📄";
+    copy.title = "Duplicate";
+    copy.onclick = () => duplicateEmployee(emp);
 
     const del = document.createElement("button");
     del.textContent = "🗑";
+    del.title = "Delete";
     del.onclick = () => confirmDelete(emp);
 
-    right.append(edit, del);
+    right.append(edit, copy, del);
+
     top.append(left, right);
 
     card.appendChild(top);
 
     card.appendChild(createGrid([
       ["Name", emp.name],
-      ["ID", emp.employee_id],
-      ["Designation", emp.designation],
       ["Super", emp.super_name],
+      ["Emp ID", emp.employee_id],
       ["Super ID", emp.super_id],
-      ["Super Role", emp.super_designation],
+      ["Desig", emp.designation],
+      ["Super Desig", emp.super_designation],
+      ["Branch ID", emp.branch_id],
       ["Branch", emp.branch_name],
       ["Zone", emp.zone],
       ["State", emp.state],
     ]));
 
-    results.appendChild(card);
+    fragment.appendChild(card);
   });
+
+  // results.appendChild(card);
+  results.appendChild(fragment);
 
   resultCount.innerText = `Showing ${safeData.length} results`;
 }
 
 /* ---------------- STATS ---------------- */
+// function updateStats() {
+//   totalCount.innerText = allData.length;
+//   activeCount.innerText =
+//     allData.filter(x => x.status === "active").length;
+// }
 function updateStats() {
   totalCount.innerText = allData.length;
-  activeCount.innerText = allData.filter(x => x.status === "active").length;
+
+  activeCount.innerText =
+    allData.filter(x =>
+      (x.status || "").toLowerCase() === "active"
+    ).length;
 }
 
-/* ---------------- STATUS DOT ---------------- */
-function createStatusDot(status) {
-  const dot = document.createElement("span");
-  const val = (status || "inactive").toLowerCase();
+/* ---------------- THEME ---------------- */
+const toggle = document.getElementById("themeToggle");
 
-  dot.className = "status-dot " + (val === "active" ? "green" : "red");
-  dot.title = val;
+if (toggle) {
+  const saved = localStorage.getItem("theme");
+
+  if (saved === "light") {
+    document.body.classList.add("light");
+    toggle.innerText = "🌞";
+  }
+
+  toggle.addEventListener("click", () => {
+    const isLight = document.body.classList.toggle("light");
+
+    toggle.innerText = isLight ? "🌞" : "🌙";
+
+    localStorage.setItem("theme", isLight ? "light" : "dark");
+  });
+}
+
+//card
+function createSection(title, fields = []) {
+  const wrapper = document.createElement("div");
+
+  const h4 = document.createElement("h4");
+  h4.textContent = title;
+  wrapper.appendChild(h4);
+
+  fields.forEach(([label, value]) => {
+    const p = document.createElement("p");
+
+    const strong = document.createElement("b");
+    strong.textContent = label + ": ";
+
+    const span = document.createElement("span");
+
+    if (value instanceof HTMLElement) {
+      span.appendChild(value);
+    } else {
+      span.textContent = value ?? "-";
+    }
+
+    p.appendChild(strong);
+    p.appendChild(span);
+
+    wrapper.appendChild(p);
+  });
+
+  return wrapper;
+}
+
+
+//Status Dot
+function createStatusDot(status) {
+  const s = (status || "").toLowerCase();
+
+  const dot = document.createElement("span");
+  dot.className = "status-dot " + (s === "active" ? "green" : "red");
+  dot.title = s;
 
   return dot;
 }
 
-/* ---------------- GRID ---------------- */
-function createGrid(fields) {
+function createGrid(fields = []) {
   const grid = document.createElement("div");
   grid.className = "info-grid";
 
   fields.forEach(([label, value]) => {
     const item = document.createElement("div");
 
-    item.innerHTML = `
-      <span class="label">${label}:</span>
-      <span class="value">${value ?? "-"}</span>
-    `;
+    const l = document.createElement("span");
+    l.className = "label";
+    l.textContent = label + ": ";
+
+    const v = document.createElement("span");
+    v.className = "value";
+    v.textContent = value ?? "-";
+
+    item.appendChild(l);
+    item.appendChild(v);
 
     grid.appendChild(item);
   });
@@ -186,111 +384,261 @@ function createGrid(fields) {
   return grid;
 }
 
-/* ---------------- EDIT MODAL ---------------- */
+function createItem(label, value) {
+  const div = document.createElement("div");
+
+  const l = document.createElement("span");
+  l.className = "label";
+  l.textContent = label + ": ";
+
+  const v = document.createElement("span");
+  v.className = "value";
+  v.textContent = value ?? "-";
+
+  div.appendChild(l);
+  div.appendChild(v);
+
+  return div;
+}
+
+function escapeHTML(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// OpenEdit model
 function openEditModal(emp) {
   currentEditEmp = emp;
 
-  document.getElementById("editModal").classList.remove("hidden");
+  const modal = document.getElementById("editModal");
 
-  document.getElementById("editEmpIdLabel").innerText = "ID: " + emp.employee_id;
+  setTimeout(() => {
+    allowNumbers(document.getElementById("editBranchId"));
+    allowNumbers(document.getElementById("editSuperId"));
 
-  document.getElementById("editName").value = emp.name || "";
-  document.getElementById("editState").value = emp.state || "";
-  document.getElementById("editZone").value = emp.zone || "";
-  document.getElementById("editBranchId").value = emp.branch_id || "";
-  document.getElementById("editBranch").value = emp.branch_name || "";
-  document.getElementById("editSuperId").value = emp.super_id || "";
-  document.getElementById("editSuperName").value = emp.super_name || "";
+    allowAlphabets(document.getElementById("editName"));
+    allowAlphabets(document.getElementById("editSuperName"));
 
-  document.getElementById("editStatus").value =
-    (emp.status || "active").toLowerCase();
+    allowAlphaNumeric(document.getElementById("editState"));
+    allowAlphaNumeric(document.getElementById("editZone"));
+    allowAlphaNumeric(document.getElementById("editBranch"));
+  }, 0);
 
+  modal.innerHTML = `
+    <div class="modal-box edit-card">
+
+      <div class="edit-header">
+        <h3>✏️ Edit Employee</h3>
+        <span class="mini-id">ID: ${escapeHTML(emp.employee_id)}</span>
+      </div>
+
+      <div class="edit-grid">
+
+        <div class="field">
+          <label>Employee Name</label>
+          <input id="editName" value="${escapeHTML(emp.name)}">
+        </div>
+
+        <div class="field">
+          <label>Employee Designation</label>
+          <select id="editDesig"></select>
+        </div>
+
+        <div class="field">
+          <label>State</label>
+          <input id="editState" value="${escapeHTML(emp.state || "")}">
+        </div>
+
+        <div class="field">
+          <label>Zone</label>
+          <input id="editZone" value="${escapeHTML(emp.zone || "")}">
+        </div>
+
+        <div class="field">
+          <label>Branch ID</label>
+          <input id="editBranchId" value="${escapeHTML(emp.branch_id || "")}">
+        </div>
+
+        <div class="field">
+          <label>Branch Name</label>
+          <input id="editBranch" value="${escapeHTML(emp.branch_name || "")}">
+        </div>
+
+        <div class="field">
+          <label>Super ID</label>
+          <input id="editSuperId" value="${escapeHTML(emp.super_id || "")}">
+        </div>
+
+        <div class="field">
+          <label>Super Name</label>
+          <input id="editSuperName" value="${escapeHTML(emp.super_name || "")}">
+        </div>
+
+        <div class="field">
+          <label>Super Designation</label>
+          <select id="editSuperDesig"></select>
+        </div>
+
+        <div class="field">
+          <label>Employee Status</label>
+          <select id="editStatus">
+            <option value="active">Active</option>
+            <option value="deactive">Deactive</option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="modal-actions">
+        <button id="cancelEdit">Cancel</button>
+        <button class="safe-btn" id="saveEdit">Save</button>
+      </div>
+
+    </div>
+  `;
+
+  modal.classList.remove("hidden");
   fillEditDropdowns(emp);
+
+const statusSelect = document.getElementById("editStatus");
+
+const normalizedStatus =
+  (emp.status || "active").toLowerCase();
+
+if ([...statusSelect.options].some(o => o.value === normalizedStatus)) {
+  statusSelect.value = normalizedStatus;
+} else {
+  statusSelect.value = "active";
+}
 
   document.getElementById("cancelEdit").onclick = closeModal;
   document.getElementById("saveEdit").onclick = saveEdit;
 }
 
+//Close Model
 function closeModal() {
   document.getElementById("editModal").classList.add("hidden");
 }
 
-/* ---------------- SAVE EDIT ---------------- */
+//Save Edit
 async function saveEdit() {
+  const requiredFields = [
+    "editName",
+    "editDesig",
+    "editState",
+    "editZone",
+    "editBranch",
+    "editBranchId",
+    "editSuperId",
+    "editSuperName"
+  ];
+
+  if (!validateAllRequired(requiredFields)) return;
+
   try {
-    const payload = {
-      name: editName.value,
-      designation: editDesig.value,
-      state: editState.value,
-      zone: editZone.value,
-      branch_id: editBranchId.value,
-      branch_name: editBranch.value,
-      super_id: editSuperId.value,
-      super_name: editSuperName.value,
-      super_designation: editSuperDesig.value,
-      status: editStatus.value
+
+    const empDesig = document.getElementById("editDesig").value;
+    const superDesig = document.getElementById("editSuperDesig").value;
+
+    if (!validateHierarchy(empDesig, superDesig)) {
+      toast("Employee must be LOWER than Super designation","warning");
+      return;
+    }
+
+    const url = `https://afplgis.com/api/employees/${currentEditEmp.id}`;
+
+    const updated = {
+      name: document.getElementById("editName").value,
+      designation: empDesig,
+      state: document.getElementById("editState").value,
+      zone: document.getElementById("editZone").value,
+      branch_name: document.getElementById("editBranch").value,
+      branch_id: document.getElementById("editBranchId").value,
+      super_name: document.getElementById("editSuperName").value,
+      super_id: document.getElementById("editSuperId").value,
+      super_designation: superDesig,
+      status: document.getElementById("editStatus").value,
     };
 
-    const res = await fetch(`${API}/${currentEditEmp.id}`, {
+    const res = await fetch(url, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(updated)
     });
 
-    if (!res.ok) throw new Error();
+    if (!res.ok) {
+      const msg = await res.text();
+      throw new Error(msg || "API error");
+    }
 
-    toast("Updated successfully");
+    toast("Updated successfully","success");
     closeModal();
     init();
 
   } catch {
-    toast("Update failed");
+    toast("Update failed","error");
   }
 }
 
-/* ---------------- DROPDOWNS ---------------- */
-function fillEditDropdowns(emp) {
-  const empSel = editDesig;
-  const superSel = editSuperDesig;
+//Cancle Edit
+// document.getElementById("cancelEdit").onclick = closeModal;
 
-  empSel.innerHTML = hierarchy.map(r => `<option>${r}</option>`).join("");
-  empSel.value = emp.designation;
+//Duplicate
+function duplicateEmployee(emp) {
+  // open ADD modal
+  document.getElementById("addModal").classList.remove("hidden");
+  document.getElementById("addTitle").innerText = "📄 Duplicate Employee";
 
-  filterSuperRoles("editDesig", "editSuperDesig");
+  // fill dropdowns first
+  fillAddDropdowns();
 
-  if ([...superSel.options].some(o => o.value === emp.super_designation)) {
-    superSel.value = emp.super_designation;
+  // fill values (copy from selected employee)
+  document.getElementById("addEmpId").value = "";
+  document.getElementById("addName").value = emp.name || "";
+
+  document.getElementById("addDesig").value = emp.designation || "BM";
+
+  document.getElementById("addState").value = emp.state || "";
+  document.getElementById("addZone").value = emp.zone || "";
+
+  document.getElementById("addBranchId").value = emp.branch_id || "";
+  document.getElementById("addBranch").value = emp.branch_name || "";
+
+  document.getElementById("addSuperId").value = emp.super_id || "";
+  document.getElementById("addSuperName").value = emp.super_name || "";
+
+  filterSuperRoles("addDesig", "addSuperDesig");
+
+  // set super designation if valid
+  const superSelect = document.getElementById("addSuperDesig");
+ 
+  if ([...superSelect.options].some(o => o.value === emp.super_designation)) {
+    superSelect.value = emp.super_designation;
   }
 
-  empSel.onchange = () =>
-    filterSuperRoles("editDesig", "editSuperDesig");
+  document.getElementById("addStatus").value =
+    (emp.status || "active").toLowerCase();
+
+  // clear password ALWAYS
+  document.getElementById("addPassword").value = "";
 }
 
-function filterSuperRoles(empId, superId) {
-  const empIndex = hierarchy.indexOf(document.getElementById(empId).value);
-  const superSel = document.getElementById(superId);
 
-  superSel.innerHTML = "";
-
-  hierarchy.forEach((r, i) => {
-    if (i < empIndex) {
-      superSel.innerHTML += `<option value="${r}">${r}</option>`;
-    }
-  });
-
-  if (!superSel.innerHTML)
-    superSel.innerHTML = `<option value="">No superior</option>`;
-}
-
-/* ---------------- DELETE ---------------- */
+//Delete
 function confirmDelete(emp) {
   const box = document.createElement("div");
   box.className = "modal";
 
   box.innerHTML = `
     <div class="modal-box delete-box">
-      <h3>Delete Employee</h3>
-      <p>Delete <b>${emp.name}</b>?</p>
+      <h3>⚠️ Delete Employee</h3>
+
+      <p class="danger-text">
+        Are you sure you want to delete <b>${escapeHTML(emp.name)}</b>?
+      </p>
+
       <div class="modal-actions">
         <button id="no">Cancel</button>
         <button id="yes" class="danger-btn">Delete</button>
@@ -304,18 +652,400 @@ function confirmDelete(emp) {
 
   box.querySelector("#yes").onclick = async () => {
     try {
-      const res = await fetch(`${API}/emp/${emp.employee_id}`, {
-        method: "DELETE"
-      });
+      const url = `https://afplgis.com/api/employees/emp/${emp.employee_id}`;
+
+      const res = await fetch(url, { method: "DELETE" });
 
       if (!res.ok) throw new Error();
 
-      toast("Deleted");
+      toast("Deleted successfully","success");
       box.remove();
       init();
 
     } catch {
-      toast("Delete failed");
+      toast("Delete failed","error");
     }
   };
+}
+
+//Add Button
+// window.addEventListener("load", () => {
+//   const addBtn = document.getElementById("addBtn");
+
+//   if (!addBtn) {
+//     return;
+//   }
+
+//   addBtn.onclick = () => {
+//     console.log("Add button clicked");
+
+//     const modal = document.getElementById("addModal");
+//     if (!modal) {
+//       return;
+//     }
+
+//     document.getElementById("addTitle").innerText = "➕ Add Employee";
+//     modal.classList.remove("hidden");
+//     fillAddDropdowns();
+//   };
+
+// });
+document.addEventListener("DOMContentLoaded", () => {
+  const addBtn = document.getElementById("addBtn");
+
+  if (!addBtn) return;
+
+  addBtn.addEventListener("click", () => {
+    document.getElementById("addTitle").innerText = "➕ Add Employee";
+    document.getElementById("addModal").classList.remove("hidden");
+    fillAddDropdowns();
+  });
+});
+
+//Close Add
+function closeAddModal() {
+  document.getElementById("addModal").classList.add("hidden");
+  document.querySelectorAll("#addModal input").forEach(i => i.value = "");
+  document.querySelectorAll("#addModal select").forEach(s => s.selectedIndex = 0);
+}
+
+//SaveADD
+// document.getElementById("saveAdd").onclick = async () => {
+//   try {
+
+//     const empDesig = document.getElementById("addDesig").value;
+//     const superDesig = document.getElementById("addSuperDesig").value;
+
+//     if (!validateHierarchy(empDesig, superDesig)) {
+//       toast("Employee must be LOWER than Super designation");
+//       return;
+//     }
+
+//     const payload = {
+//       employee_id: document.getElementById("addEmpId").value,
+//       name: document.getElementById("addName").value,
+//       designation: empDesig,
+//       state: document.getElementById("addState").value,
+//       zone: document.getElementById("addZone").value,
+//       branch_name: document.getElementById("addBranch").value,
+//       branch_id: document.getElementById("addBranchId").value,
+
+//       super_id: document.getElementById("addSuperId").value,
+//       super_name: document.getElementById("addSuperName").value,
+//       super_designation: superDesig,
+
+//       status: document.getElementById("addStatus").value,
+//       password: document.getElementById("addPassword").value
+//     };
+
+//     if (!payload.name || !payload.employee_id) {
+//       toast("Name & Employee ID required");
+//       return;
+//     }
+
+//     if (!/^\d+$/.test(payload.employee_id)) {
+//       toast("Employee ID must be numbers only");
+//       return;
+//     }
+
+//     const res = await fetch(API, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(payload)
+//     });
+
+//     if (!res.ok) throw new Error();
+
+//     toast("Employee added successfully");
+//     closeAddModal();
+//     init();
+
+//   } catch (e) {
+//     toast("Failed to add employee");
+//   }
+// };
+const saveAddBtn = document.getElementById("saveAdd");
+
+if (saveAddBtn) {
+  saveAddBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    const requiredFields = [
+      "addEmpId",
+      "addName",
+      "addDesig",
+      "addSuperId",
+      "addSuperName",
+      "addState",
+      "addZone",
+      "addBranch",
+      "addBranchId",
+      "addPassword"
+    ];
+
+  if (!validateAllRequired(requiredFields)) return;
+
+    isSubmitting = true;
+    saveAddBtn.disabled = true;
+
+    try {
+      const empDesig = document.getElementById("addDesig").value;
+      const superDesig = document.getElementById("addSuperDesig").value;
+
+      if (!validateHierarchy(empDesig, superDesig)) {
+        toast("Employee must be LOWER than Super designation","warning");
+        return;
+      }
+
+      const payload = {
+        employee_id: document.getElementById("addEmpId").value,
+        name: document.getElementById("addName").value,
+        designation: empDesig,
+        state: document.getElementById("addState").value,
+        zone: document.getElementById("addZone").value,
+        branch_name: document.getElementById("addBranch").value,
+        branch_id: document.getElementById("addBranchId").value,
+        super_id: document.getElementById("addSuperId").value,
+        super_name: document.getElementById("addSuperName").value,
+        super_designation: superDesig,
+        status: document.getElementById("addStatus").value,
+        password: document.getElementById("addPassword").value
+      };
+
+      const res = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error();
+
+      toast("Employee added successfully","success");
+      closeAddModal();
+      init();
+
+    } catch (e) {
+      toast("Failed to add employee","error");
+    }
+    finally {
+      isSubmitting = false;
+      saveAddBtn.disabled = false;
+    }
+  });
+}
+
+// dropdown desig ADD
+function fillAddDropdowns() {
+  const empSelect = document.getElementById("addDesig");
+
+  empSelect.innerHTML = "";
+  setTimeout(() => {
+    allowNumbers(document.getElementById("addEmpId"));
+    allowNumbers(document.getElementById("addBranchId"));
+    allowNumbers(document.getElementById("addSuperId"));
+
+    allowAlphabets(document.getElementById("addName"));
+    allowAlphabets(document.getElementById("addSuperName"));
+
+    allowAlphaNumeric(document.getElementById("addState"));
+    allowAlphaNumeric(document.getElementById("addZone"));
+    allowAlphaNumeric(document.getElementById("addBranch"));
+  }, 0);
+  const fragment = document.createDocumentFragment();
+
+    [...hierarchy].reverse().forEach(d => {
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.textContent = d;
+    fragment.appendChild(opt);
+  });
+
+  empSelect.appendChild(fragment);
+
+  empSelect.value = "BM";
+
+  filterSuperRoles("addDesig", "addSuperDesig");
+
+  empSelect.onchange = () => {
+    filterSuperRoles("addDesig", "addSuperDesig");
+  };
+}
+
+
+//Dropdown desig Edit
+function fillEditDropdowns(emp) {
+  const empSelect = document.getElementById("editDesig");
+  const superSelect = document.getElementById("editSuperDesig");
+
+  empSelect.innerHTML = "";
+
+  const fragment = document.createDocumentFragment();
+
+    [...hierarchy].reverse().forEach(d => {
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.textContent = d;
+    fragment.appendChild(opt);
+  });
+
+  empSelect.appendChild(fragment);
+
+  // set employee role
+  empSelect.value = emp.designation;
+
+  // filter based on employee
+  filterSuperRoles("editDesig", "editSuperDesig");
+
+  // set super role ONLY if valid
+  const exists = [...superSelect.options].some(
+    o => o.value === emp.super_designation
+  );
+
+  if (exists) {
+    superSelect.value = emp.super_designation;
+  }
+
+  // dynamic change
+  empSelect.onchange = () => {
+    filterSuperRoles("editDesig", "editSuperDesig");
+  };
+}
+
+function validateHierarchy(empDesig, superDesig) {
+  return hierarchy.indexOf(empDesig) > hierarchy.indexOf(superDesig);
+}
+
+//filter desig
+function filterSuperRoles(empSelectId, superSelectId) {
+  const empSelect = document.getElementById(empSelectId);
+  const superSelect = document.getElementById(superSelectId);
+
+  const selected = empSelect.value;
+  const empIndex = hierarchy.indexOf(selected);
+
+  superSelect.innerHTML = "";
+
+  [...hierarchy]
+    .map((role, index) => ({ role, index }))
+    .filter(x => x.index < empIndex)
+    .reverse()
+    .forEach(x => {
+      superSelect.innerHTML += `<option value="${x.role}">${x.role}</option>`;
+    });
+
+  if (superSelect.innerHTML === "") {
+    superSelect.innerHTML = `<option value="">No superior</option>`;
+  }
+}
+
+
+// numbers only
+function allowNumbers(el) {
+  el.addEventListener("input", () => {
+    el.value = el.value.replace(/\D/g, "");
+  });
+}
+
+// alphabets + space only
+function allowAlphabets(el) {
+  el.addEventListener("input", () => {
+    el.value = el.value.replace(/[^a-zA-Z\s]/g, "");
+  });
+}
+
+// alphanumeric
+function allowAlphaNumeric(el) {
+  el.addEventListener("input", () => {
+    el.value = el.value
+      .replace(/[^a-zA-Z0-9\s-]/g, "")
+      .replace(/\s{2,}/g, " ")
+      .replace(/-+/g, "-");
+  });
+}
+
+
+const suggestionsBox = document.getElementById("suggestions");
+
+function showSuggestions(q) {
+  const query = q.toLowerCase();
+
+  if (query.length < 2) {
+    suggestionsBox.style.display = "none";
+    return;
+  }
+
+  const matches = allData
+    .filter(emp =>
+      (emp.name || "").toLowerCase().includes(query) ||
+      (emp.employee_id || "").toString().includes(query)
+    )
+    .slice(0, 6); // limit like Google
+
+  suggestionsBox.innerHTML = "";
+
+  if (!matches.length) {
+    suggestionsBox.style.display = "none";
+    return;
+  }
+
+  matches.forEach(emp => {
+    const item = document.createElement("div");
+    item.textContent = `${emp.name} (${emp.employee_id})`;
+
+    item.onclick = () => {
+      input.value = emp.name;
+      suggestionsBox.style.display = "none";
+      handleSearch(emp.name); // trigger search
+    };
+
+    suggestionsBox.appendChild(item);
+  });
+
+  suggestionsBox.style.display = "block";
+}
+
+
+
+//suggestion
+function showSuggestions(q) {
+  clearTimeout(suggestionTimer);
+
+  const query = q.trim();
+
+  if (query.length < 3 || !/^\d+$/.test(query)) {
+    suggestionsBox.style.display = "none";
+    return;
+  }
+
+  const matches = allData
+    .filter(emp => (emp.employee_id || "").toString().includes(query))
+    .slice(0, 6);
+
+  suggestionsBox.innerHTML = "";
+
+  if (!matches.length) {
+    suggestionsBox.style.display = "none";
+    return;
+  }
+
+  matches.forEach(emp => {
+    const item = document.createElement("div");
+    item.textContent = `${emp.employee_id} - ${emp.name || "-"}`;
+
+    item.onclick = () => {
+      input.value = emp.employee_id;
+      suggestionsBox.style.display = "none";
+      handleSearch(emp.employee_id);
+    };
+
+    suggestionsBox.appendChild(item);
+  });
+
+  suggestionsBox.style.display = "block";
+
+  // 👇 auto hide after 5 sec inactivity
+  suggestionTimer = setTimeout(() => {
+    suggestionsBox.style.display = "none";
+  }, 3000);
 }

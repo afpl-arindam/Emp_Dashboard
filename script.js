@@ -15,13 +15,25 @@ let allData = [];
 let currentEditEmp = null;
 let currentRequest = 0;
 let isSubmitting = false;
+let suggestionTimer;
 
 /* ---------------- TOAST ---------------- */
-function toast(msg) {
+function toast(msg, type = "success") {
   const t = document.getElementById("toast");
+
   t.innerText = msg;
+
+  // remove old type classes
+  t.classList.remove("success", "error", "warning");
+
+  // add new type
+  t.classList.add(type);
+
   t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2000);
+
+  setTimeout(() => {
+    t.classList.remove("show");
+  }, 2000);
 }
 
 /* ---------------- LOADER ---------------- */
@@ -44,7 +56,7 @@ async function init() {
     resultCount.innerText = "Start searching...";
 
   } catch (e) {
-    toast("Failed to load data");
+    toast("Failed to load data","warning");
   } finally {
     hideLoader();
   }
@@ -57,10 +69,11 @@ input.addEventListener("input", () => {
   clearTimeout(timer);
 
   const q = input.value;
+  showSuggestions(q);
 
   timer = setTimeout(() => {
     handleSearch(q);
-  }, 300);
+  }, 1000);
 });
 
 /* ---------------- SEARCH LOGIC ---------------- */
@@ -79,6 +92,7 @@ async function handleSearch(q) {
   if (!q) {
     results.innerHTML = "";
     resultCount.innerText = "Start searching...";
+    hideLoader();
     return;
   }
 
@@ -86,6 +100,7 @@ async function handleSearch(q) {
   if (q.length < 3) {
     results.innerHTML = "";
     resultCount.innerText = "Type at least 3 characters...";
+    hideLoader();
     return;
   }
 
@@ -100,6 +115,7 @@ async function handleSearch(q) {
 
     render(data);
     resultCount.innerText = `Showing ${data.length} results`;
+    hideLoader();
     return;
   }
 
@@ -122,7 +138,7 @@ async function handleSearch(q) {
     render(cache[url]);
 
   } catch (e) {
-    toast("API error");
+    toast("API error","warning");
   } finally {
     if (requestId === currentRequest) {
       hideLoader();
@@ -130,53 +146,25 @@ async function handleSearch(q) {
   }
 }
 
+function isEmpty(val) {
+  return !val || val.trim() === "";
+}
+
+//must fill all box
+function validateAllRequired(ids) {
+  for (let id of ids) {
+    const el = document.getElementById(id);
+
+    if (!el || isEmpty(el.value)) {
+      toast("Please fill all required fields","error");
+      if (el) el.focus();
+      return false;
+    }
+  }
+  return true;
+}
+
 /* ---------------- RENDER ---------------- */
-// function render(data) {
-
-//   const safeData = Array.isArray(data) ? data : [];
-
-//   results.innerHTML = "";
-
-//   if (safeData.length === 0) {
-//     resultCount.innerText = "No results found";
-//     return;
-//   }
-
-//   safeData.forEach(emp => {
-//     const div = document.createElement("div");
-//     div.className = "card";
-
-//     const name = document.createElement("h3");
-//     name.textContent = emp.name || "-";
-
-//     const id = document.createElement("p");
-//     id.innerHTML = `<b>ID:</b> ${emp.employee_id ?? "-"}`;
-
-//     const state = document.createElement("p");
-//     state.innerHTML = `<b>State:</b> ${emp.state ?? "-"}`;
-
-//     const zone = document.createElement("p");
-//     zone.innerHTML = `<b>Zone:</b> ${emp.zone ?? "-"}`;
-
-//     const branch = document.createElement("p");
-//     branch.innerHTML = `<b>Branch:</b> ${emp.branch_name ?? "-"}`;
-
-//     const badge = document.createElement("span");
-//     badge.className = "badge";
-//     badge.textContent = emp.status ?? "-";
-
-//     div.appendChild(name);
-//     div.appendChild(id);
-//     div.appendChild(state);
-//     div.appendChild(zone);
-//     div.appendChild(branch);
-//     div.appendChild(badge);
-
-//     results.appendChild(div);
-//   });
-
-//   resultCount.innerText = `Showing ${safeData.length} results`;
-// }
 function render(data) {
   results.innerHTML = "";
 
@@ -249,11 +237,6 @@ function render(data) {
 }
 
 /* ---------------- STATS ---------------- */
-// function updateStats() {
-//   totalCount.innerText = allData.length;
-//   activeCount.innerText =
-//     allData.filter(x => x.status === "active").length;
-// }
 function updateStats() {
   totalCount.innerText = allData.length;
 
@@ -490,13 +473,26 @@ function closeModal() {
 
 //Save Edit
 async function saveEdit() {
+  const requiredFields = [
+    "editName",
+    "editDesig",
+    "editState",
+    "editZone",
+    "editBranch",
+    "editBranchId",
+    "editSuperId",
+    "editSuperName"
+  ];
+
+  if (!validateAllRequired(requiredFields)) return;
+
   try {
 
     const empDesig = document.getElementById("editDesig").value;
     const superDesig = document.getElementById("editSuperDesig").value;
 
     if (!validateHierarchy(empDesig, superDesig)) {
-      toast("Employee must be LOWER than Super designation");
+      toast("Employee must be LOWER than Super designation","warning");
       return;
     }
 
@@ -526,17 +522,15 @@ async function saveEdit() {
       throw new Error(msg || "API error");
     }
 
-    toast("Updated successfully");
+    toast("Updated successfully","success");
     closeModal();
     init();
 
   } catch {
-    toast("Update failed");
+    toast("Update failed","error");
   }
 }
 
-//Cancle Edit
-// document.getElementById("cancelEdit").onclick = closeModal;
 
 //Duplicate
 function duplicateEmployee(emp) {
@@ -611,38 +605,17 @@ function confirmDelete(emp) {
 
       if (!res.ok) throw new Error();
 
-      toast("Deleted successfully");
+      toast("Deleted successfully","success");
       box.remove();
       init();
 
     } catch {
-      toast("Delete failed");
+      toast("Delete failed","error");
     }
   };
 }
 
 //Add Button
-// window.addEventListener("load", () => {
-//   const addBtn = document.getElementById("addBtn");
-
-//   if (!addBtn) {
-//     return;
-//   }
-
-//   addBtn.onclick = () => {
-//     console.log("Add button clicked");
-
-//     const modal = document.getElementById("addModal");
-//     if (!modal) {
-//       return;
-//     }
-
-//     document.getElementById("addTitle").innerText = "➕ Add Employee";
-//     modal.classList.remove("hidden");
-//     fillAddDropdowns();
-//   };
-
-// });
 document.addEventListener("DOMContentLoaded", () => {
   const addBtn = document.getElementById("addBtn");
 
@@ -663,66 +636,27 @@ function closeAddModal() {
 }
 
 //SaveADD
-// document.getElementById("saveAdd").onclick = async () => {
-//   try {
-
-//     const empDesig = document.getElementById("addDesig").value;
-//     const superDesig = document.getElementById("addSuperDesig").value;
-
-//     if (!validateHierarchy(empDesig, superDesig)) {
-//       toast("Employee must be LOWER than Super designation");
-//       return;
-//     }
-
-//     const payload = {
-//       employee_id: document.getElementById("addEmpId").value,
-//       name: document.getElementById("addName").value,
-//       designation: empDesig,
-//       state: document.getElementById("addState").value,
-//       zone: document.getElementById("addZone").value,
-//       branch_name: document.getElementById("addBranch").value,
-//       branch_id: document.getElementById("addBranchId").value,
-
-//       super_id: document.getElementById("addSuperId").value,
-//       super_name: document.getElementById("addSuperName").value,
-//       super_designation: superDesig,
-
-//       status: document.getElementById("addStatus").value,
-//       password: document.getElementById("addPassword").value
-//     };
-
-//     if (!payload.name || !payload.employee_id) {
-//       toast("Name & Employee ID required");
-//       return;
-//     }
-
-//     if (!/^\d+$/.test(payload.employee_id)) {
-//       toast("Employee ID must be numbers only");
-//       return;
-//     }
-
-//     const res = await fetch(API, {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify(payload)
-//     });
-
-//     if (!res.ok) throw new Error();
-
-//     toast("Employee added successfully");
-//     closeAddModal();
-//     init();
-
-//   } catch (e) {
-//     toast("Failed to add employee");
-//   }
-// };
 const saveAddBtn = document.getElementById("saveAdd");
 
 if (saveAddBtn) {
   saveAddBtn.addEventListener("click", async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
+
+    const requiredFields = [
+      "addEmpId",
+      "addName",
+      "addDesig",
+      "addSuperId",
+      "addSuperName",
+      "addState",
+      "addZone",
+      "addBranch",
+      "addBranchId",
+      "addPassword"
+    ];
+
+  if (!validateAllRequired(requiredFields)) return;
 
     isSubmitting = true;
     saveAddBtn.disabled = true;
@@ -732,7 +666,7 @@ if (saveAddBtn) {
       const superDesig = document.getElementById("addSuperDesig").value;
 
       if (!validateHierarchy(empDesig, superDesig)) {
-        toast("Employee must be LOWER than Super designation");
+        toast("Employee must be LOWER than Super designation","warning");
         return;
       }
 
@@ -759,12 +693,12 @@ if (saveAddBtn) {
 
       if (!res.ok) throw new Error();
 
-      toast("Employee added successfully");
+      toast("Employee added successfully","success");
       closeAddModal();
       init();
 
     } catch (e) {
-      toast("Failed to add employee");
+      toast("Failed to add employee","error");
     }
     finally {
       isSubmitting = false;
@@ -792,7 +726,7 @@ function fillAddDropdowns() {
   }, 0);
   const fragment = document.createDocumentFragment();
 
-  hierarchy.forEach(d => {
+    [...hierarchy].reverse().forEach(d => {
     const opt = document.createElement("option");
     opt.value = d;
     opt.textContent = d;
@@ -820,7 +754,7 @@ function fillEditDropdowns(emp) {
 
   const fragment = document.createDocumentFragment();
 
-  hierarchy.forEach(d => {
+    [...hierarchy].reverse().forEach(d => {
     const opt = document.createElement("option");
     opt.value = d;
     opt.textContent = d;
@@ -864,11 +798,13 @@ function filterSuperRoles(empSelectId, superSelectId) {
 
   superSelect.innerHTML = "";
 
-  hierarchy.forEach((role, index) => {
-    if (index < empIndex) {
-      superSelect.innerHTML += `<option value="${role}">${role}</option>`;
-    }
-  });
+  [...hierarchy]
+    .map((role, index) => ({ role, index }))
+    .filter(x => x.index < empIndex)
+    .reverse()
+    .forEach(x => {
+      superSelect.innerHTML += `<option value="${x.role}">${x.role}</option>`;
+    });
 
   if (superSelect.innerHTML === "") {
     superSelect.innerHTML = `<option value="">No superior</option>`;
@@ -898,4 +834,88 @@ function allowAlphaNumeric(el) {
       .replace(/\s{2,}/g, " ")
       .replace(/-+/g, "-");
   });
+}
+
+
+const suggestionsBox = document.getElementById("suggestions");
+
+function showSuggestions(q) {
+  const query = q.toLowerCase();
+
+  if (query.length < 2) {
+    suggestionsBox.style.display = "none";
+    return;
+  }
+
+  const matches = allData
+    .filter(emp =>
+      (emp.name || "").toLowerCase().includes(query) ||
+      (emp.employee_id || "").toString().includes(query)
+    )
+    .slice(0, 6); // limit like Google
+
+  suggestionsBox.innerHTML = "";
+
+  if (!matches.length) {
+    suggestionsBox.style.display = "none";
+    return;
+  }
+
+  matches.forEach(emp => {
+    const item = document.createElement("div");
+    item.textContent = `${emp.name} (${emp.employee_id})`;
+
+    item.onclick = () => {
+      input.value = emp.name;
+      suggestionsBox.style.display = "none";
+      handleSearch(emp.name); // trigger search
+    };
+
+    suggestionsBox.appendChild(item);
+  });
+
+  suggestionsBox.style.display = "block";
+}
+
+//suggestion
+function showSuggestions(q) {
+  clearTimeout(suggestionTimer);
+
+  const query = q.trim();
+
+  if (query.length < 3 || !/^\d+$/.test(query)) {
+    suggestionsBox.style.display = "none";
+    return;
+  }
+
+  const matches = allData
+    .filter(emp => (emp.employee_id || "").toString().includes(query))
+    .slice(0, 6);
+
+  suggestionsBox.innerHTML = "";
+
+  if (!matches.length) {
+    suggestionsBox.style.display = "none";
+    return;
+  }
+
+  matches.forEach(emp => {
+    const item = document.createElement("div");
+    item.textContent = `${emp.employee_id} - ${emp.name || "-"}`;
+
+    item.onclick = () => {
+      input.value = emp.employee_id;
+      suggestionsBox.style.display = "none";
+      handleSearch(emp.employee_id);
+    };
+
+    suggestionsBox.appendChild(item);
+  });
+
+  suggestionsBox.style.display = "block";
+
+  // 👇 auto hide after 5 sec inactivity
+  suggestionTimer = setTimeout(() => {
+    suggestionsBox.style.display = "none";
+  }, 3000);
 }
