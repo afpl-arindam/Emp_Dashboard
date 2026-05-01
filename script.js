@@ -852,7 +852,7 @@ function showSuggestions(q) {
       (emp.name || "").toLowerCase().includes(query) ||
       (emp.employee_id || "").toString().includes(query)
     )
-    .slice(0, 6); // limit like Google
+    .slice(0, 6);
 
   suggestionsBox.innerHTML = "";
 
@@ -868,7 +868,7 @@ function showSuggestions(q) {
     item.onclick = () => {
       input.value = emp.name;
       suggestionsBox.style.display = "none";
-      handleSearch(emp.name); // trigger search
+      handleSearch(emp.name);
     };
 
     suggestionsBox.appendChild(item);
@@ -914,7 +914,6 @@ function showSuggestions(q) {
 
   suggestionsBox.style.display = "block";
 
-  // 👇 auto hide after 5 sec inactivity
   suggestionTimer = setTimeout(() => {
     suggestionsBox.style.display = "none";
   }, 3000);

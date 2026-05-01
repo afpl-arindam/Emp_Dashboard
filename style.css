@@ -4,14 +4,83 @@
   --text: #e5e7eb;
   --muted: #9ca3af;
   --accent: #22c55e;
-
   --border: rgba(255,255,255,0.12);
   --input-bg: rgba(255,255,255,0.04);
 }
 
-@media (max-width: 700px) {
+@media (max-width: 768px) {
   .edit-grid {
     grid-template-columns: 1fr;
+  }
+  .topbar {
+    padding: 2px 5px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    max-height: 40vh;
+    height: auto;
+  }
+
+  .header-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo {
+    width: 80px;
+  }
+
+  .stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 50%;
+    /* gap: 5px; */
+    margin-top: 0;
+    margin-right: 0;
+  }
+
+  .header-title {
+    text-align: center;
+    margin-top: 5px;
+    flex-grow: 1;
+  }
+
+  .theme-toggle {
+    margin-top: 0;
+    margin-left: 0;
+  }
+  .search-wrapper {
+    display: flex;
+    justify-content: center;
+    /* margin: 10px 0; */
+  }
+
+  /* Set the search box to 100% width for smaller screens */
+  .search-box {
+    position: relative;
+    width: 60%; /* Adjust width for mobile */
+  }
+
+  .search-wrapper input {
+    width: 50%; /* Ensure input takes up full width */
+    /* padding-left: 5px; Adjust padding for better visual */
+  }
+
+  .search-box input {
+    width: 100%; /* Ensure input inside box takes 100% width */
+    /* padding-left: 5px; Adjust padding */
+  }
+
+  /* Adjust the icon position for mobile */
+  .search-box .icon {
+    position: absolute;
+    left: 10px; /* Move the icon more towards the left on mobile */
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
   }
 }
 
@@ -21,11 +90,10 @@
 
 body.light {
   --bg: #f5f7fb;
-  --card: #ffffff;
+  --card: #f1f1f1;
   --text: #0f172a;
   --muted: #64748b;
   --accent: #16a34a;
-
   --border: rgba(15,23,42,0.12);
   --input-bg: #f1f5f9;
 }
@@ -55,10 +123,35 @@ html, body {
 /* TOP BAR */
 .topbar {
   display: flex;
-  justify-content: center;
+  /* justify-content: center; */
+  justify-content: space-between;
   align-items: center;
-  position: relative;
-  /* position: sticky; */
+  /* position: relative; */
+  padding: 10px, 20px;
+  /* overflow: hidden; */
+  max-height: 40vh;
+  height: auto;
+}
+
+.header-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.header-title {
+  text-align: center;
+  flex-grow: 1;
+  margin: 0;
+  /* margin-right: 30px;   */
+}
+
+.logo {
+  width: 180px;
+  height: auto;
+  flex-shrink: 0;
+  margin-left: 30px;
 }
 
 body {
@@ -76,8 +169,10 @@ body {
 .stats {
   display: flex;
   gap: 15px;
-  position: absolute;
-  right: 70px;
+  /* position: absolute; */
+  /* position: relative; */
+  /* right: 7%; */
+  margin-right: 20px;
 }
 
 .stat {
@@ -99,7 +194,7 @@ body {
 .search-wrapper {
   display: flex;
   justify-content: center;
-  margin: 20px 0;
+  margin: 5px 0;
 }
 
 input {
@@ -127,12 +222,12 @@ input {
 
 .search-box input {
   width: 100%;
-  padding-left: 55px;
+  padding-left: 10%;
 }
 
 .search-box .icon {
   position: absolute;
-  left: 15px;
+  left: 4%;
   top: 50%;
   transform: translateY(-50%);
   color: var(--muted);
@@ -153,7 +248,7 @@ input:focus {
 /* GRID */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 12px;
 
   flex: 1;
@@ -185,7 +280,7 @@ input:focus {
 }
 
 .card:hover {
-  transform: translateY(-4px);
+  transform: translate(-2px,-2px);
   box-shadow: 0 10px 25px rgba(0,0,0,0.25);
   border-color: var(--accent);
 }
@@ -252,28 +347,19 @@ input:focus {
 
 /* THEME BUTTON */
 .theme-toggle {
-  position: fixed;
-  top: 25px;
-  right: 35px;
+  position: relative;
   z-index: 200;
-
-  width: 30px;
-  height: 30px;
-
+  width: 35px;
+  height: 35px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,0.15);
-
   background: var(--card);
   color: var(--text);
-
   backdrop-filter: blur(14px);
-
   cursor: pointer;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   font-size: 18px;
 }
 
