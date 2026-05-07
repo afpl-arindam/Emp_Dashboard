@@ -2,16 +2,20 @@ const API = "https://afplgis.com/api/employees";
 
 const input = document.getElementById("searchInput");
 const results = document.getElementById("results");
-
+const filterBox = document.getElementById("filterContainer");
 const totalCount = document.getElementById("totalCount");
 const activeCount = document.getElementById("activeCount");
 const resultCount = document.getElementById("resultCount");
 const loader = document.getElementById("loader");
+const suggestionsBox = document.getElementById("suggestions");
+const filterType = document.getElementById("filterType");
+const filterValue = document.getElementById("filterValue");
 const hierarchy = ["SH", "ZM", "AM", "UM", "BM"];
 
 let timer;
 let cache = {};
 let allData = [];
+let currentData = [];
 let currentEditEmp = null;
 let currentRequest = 0;
 let isSubmitting = false;
@@ -84,7 +88,8 @@ async function handleSearch(q) {
 
   // SHOW ALL DATA ONLY FOR ###
   if (q === "###") {
-    render(allData);
+    render(allData, true);
+    filterBox.style.display = "flex";
     return;
   }
 
@@ -92,6 +97,7 @@ async function handleSearch(q) {
   if (!q) {
     results.innerHTML = "";
     resultCount.innerText = "Start searching...";
+    filterBox.style.display = "none";
     hideLoader();
     return;
   }
@@ -100,6 +106,7 @@ async function handleSearch(q) {
   if (q.length < 3) {
     results.innerHTML = "";
     resultCount.innerText = "Type at least 3 characters...";
+    filterBox.style.display = "none";
     hideLoader();
     return;
   }
@@ -113,8 +120,9 @@ async function handleSearch(q) {
 
     if (requestId !== currentRequest) return;
 
-    render(data);
+    render(data, true);
     resultCount.innerText = `Showing ${data.length} results`;
+    filterBox.style.display = "flex";
     hideLoader();
     return;
   }
@@ -135,7 +143,7 @@ async function handleSearch(q) {
 
     cache[url] = Array.isArray(data) ? data : [];
 
-    render(cache[url]);
+    render(cache[url], true);
 
   } catch (e) {
     toast("API error","warning");
@@ -165,15 +173,22 @@ function validateAllRequired(ids) {
 }
 
 /* ---------------- RENDER ---------------- */
-function render(data) {
+function render(data, updateCurrent = false) {
   results.innerHTML = "";
 
   const safeData = Array.isArray(data) ? data : [];
 
+  // update currentData ONLY for search results
+  if (updateCurrent) {
+    currentData = safeData;
+  }
+
   if (!safeData.length) {
     resultCount.innerText = "No results found";
+    filterBox.style.display = "none";
     return;
   }
+  filterBox.style.display = "flex";
 
   const fragment = document.createDocumentFragment();
 
@@ -234,6 +249,7 @@ function render(data) {
   results.appendChild(fragment);
 
   resultCount.innerText = `Showing ${safeData.length} results`;
+  updateFilterDropdown();
 }
 
 /* ---------------- STATS ---------------- */
@@ -837,46 +853,6 @@ function allowAlphaNumeric(el) {
 }
 
 
-const suggestionsBox = document.getElementById("suggestions");
-
-function showSuggestions(q) {
-  const query = q.toLowerCase();
-
-  if (query.length < 2) {
-    suggestionsBox.style.display = "none";
-    return;
-  }
-
-  const matches = allData
-    .filter(emp =>
-      (emp.name || "").toLowerCase().includes(query) ||
-      (emp.employee_id || "").toString().includes(query)
-    )
-    .slice(0, 6);
-
-  suggestionsBox.innerHTML = "";
-
-  if (!matches.length) {
-    suggestionsBox.style.display = "none";
-    return;
-  }
-
-  matches.forEach(emp => {
-    const item = document.createElement("div");
-    item.textContent = `${emp.name} (${emp.employee_id})`;
-
-    item.onclick = () => {
-      input.value = emp.name;
-      suggestionsBox.style.display = "none";
-      handleSearch(emp.name);
-    };
-
-    suggestionsBox.appendChild(item);
-  });
-
-  suggestionsBox.style.display = "block";
-}
-
 //suggestion
 function showSuggestions(q) {
   clearTimeout(suggestionTimer);
@@ -918,3 +894,56 @@ function showSuggestions(q) {
     suggestionsBox.style.display = "none";
   }, 3000);
 }
+
+
+function getUniqueValues(key) {
+  return [...new Set(
+    currentData
+      .map(emp => emp[key])
+      .filter(v => v && v.toString().trim() !== "")
+  )].sort();
+}
+
+
+// Filter dropdown values
+function updateFilterDropdown() {
+  const type = filterType.value;
+
+  filterValue.innerHTML = `<option value="">All</option>`;
+
+  if (!type || !currentData.length) return;
+
+  const values = [...new Set(
+    currentData
+      .map(emp => emp[type])
+      .filter(v => v && v.toString().trim() !== "")
+  )].sort();
+
+  values.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    filterValue.appendChild(opt);
+  });
+}
+
+function applyFilter() {
+  const type = filterType.value;
+  const value = filterValue.value;
+
+  let result = [...currentData];
+
+  if (type && value) {
+    result = result.filter(emp => emp[type] === value);
+  }
+
+  render(result);
+}
+
+
+filterType.addEventListener("change", () => {
+  updateFilterDropdown();
+  applyFilter();
+});
+
+filterValue.addEventListener("change", applyFilter);

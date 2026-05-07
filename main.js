@@ -2,7 +2,7 @@ const API = "https://afplgis.com/api/employees";
 
 const input = document.getElementById("searchInput");
 const results = document.getElementById("results");
-
+const filterBox = document.getElementById("filterContainer");
 const totalCount = document.getElementById("totalCount");
 const activeCount = document.getElementById("activeCount");
 const resultCount = document.getElementById("resultCount");
@@ -12,6 +12,7 @@ const hierarchy = ["SH", "ZM", "AM", "UM", "BM"];
 let timer;
 let cache = {};
 let allData = [];
+let currentData = [];
 let currentEditEmp = null;
 let currentRequest = 0;
 let isSubmitting = false;
@@ -84,7 +85,8 @@ async function handleSearch(q) {
 
   // SHOW ALL DATA ONLY FOR ###
   if (q === "###") {
-    render(allData);
+    render(allData, true);
+    filterBox.style.display = "flex";
     return;
   }
 
@@ -92,6 +94,7 @@ async function handleSearch(q) {
   if (!q) {
     results.innerHTML = "";
     resultCount.innerText = "Start searching...";
+    filterBox.style.display = "none";
     hideLoader();
     return;
   }
@@ -100,6 +103,7 @@ async function handleSearch(q) {
   if (q.length < 3) {
     results.innerHTML = "";
     resultCount.innerText = "Type at least 3 characters...";
+    filterBox.style.display = "none";
     hideLoader();
     return;
   }
@@ -113,8 +117,9 @@ async function handleSearch(q) {
 
     if (requestId !== currentRequest) return;
 
-    render(data);
+    render(data, true);
     resultCount.innerText = `Showing ${data.length} results`;
+    filterBox.style.display = "flex";
     hideLoader();
     return;
   }
@@ -135,7 +140,7 @@ async function handleSearch(q) {
 
     cache[url] = Array.isArray(data) ? data : [];
 
-    render(cache[url]);
+    render(cache[url], true);
 
   } catch (e) {
     toast("API error","warning");
@@ -165,61 +170,22 @@ function validateAllRequired(ids) {
 }
 
 /* ---------------- RENDER ---------------- */
-// function render(data) {
-
-//   const safeData = Array.isArray(data) ? data : [];
-
-//   results.innerHTML = "";
-
-//   if (safeData.length === 0) {
-//     resultCount.innerText = "No results found";
-//     return;
-//   }
-
-//   safeData.forEach(emp => {
-//     const div = document.createElement("div");
-//     div.className = "card";
-
-//     const name = document.createElement("h3");
-//     name.textContent = emp.name || "-";
-
-//     const id = document.createElement("p");
-//     id.innerHTML = `<b>ID:</b> ${emp.employee_id ?? "-"}`;
-
-//     const state = document.createElement("p");
-//     state.innerHTML = `<b>State:</b> ${emp.state ?? "-"}`;
-
-//     const zone = document.createElement("p");
-//     zone.innerHTML = `<b>Zone:</b> ${emp.zone ?? "-"}`;
-
-//     const branch = document.createElement("p");
-//     branch.innerHTML = `<b>Branch:</b> ${emp.branch_name ?? "-"}`;
-
-//     const badge = document.createElement("span");
-//     badge.className = "badge";
-//     badge.textContent = emp.status ?? "-";
-
-//     div.appendChild(name);
-//     div.appendChild(id);
-//     div.appendChild(state);
-//     div.appendChild(zone);
-//     div.appendChild(branch);
-//     div.appendChild(badge);
-
-//     results.appendChild(div);
-//   });
-
-//   resultCount.innerText = `Showing ${safeData.length} results`;
-// }
-function render(data) {
+function render(data, updateCurrent = false) {
   results.innerHTML = "";
 
   const safeData = Array.isArray(data) ? data : [];
 
+  // update currentData ONLY for search results
+  if (updateCurrent) {
+    currentData = safeData;
+  }
+
   if (!safeData.length) {
     resultCount.innerText = "No results found";
+    filterBox.style.display = "none";
     return;
   }
+  filterBox.style.display = "flex";
 
   const fragment = document.createDocumentFragment();
 
@@ -280,14 +246,10 @@ function render(data) {
   results.appendChild(fragment);
 
   resultCount.innerText = `Showing ${safeData.length} results`;
+  updateFilterDropdown();
 }
 
 /* ---------------- STATS ---------------- */
-// function updateStats() {
-//   totalCount.innerText = allData.length;
-//   activeCount.innerText =
-//     allData.filter(x => x.status === "active").length;
-// }
 function updateStats() {
   totalCount.innerText = allData.length;
 
@@ -582,8 +544,6 @@ async function saveEdit() {
   }
 }
 
-//Cancle Edit
-// document.getElementById("cancelEdit").onclick = closeModal;
 
 //Duplicate
 function duplicateEmployee(emp) {
@@ -669,27 +629,6 @@ function confirmDelete(emp) {
 }
 
 //Add Button
-// window.addEventListener("load", () => {
-//   const addBtn = document.getElementById("addBtn");
-
-//   if (!addBtn) {
-//     return;
-//   }
-
-//   addBtn.onclick = () => {
-//     console.log("Add button clicked");
-
-//     const modal = document.getElementById("addModal");
-//     if (!modal) {
-//       return;
-//     }
-
-//     document.getElementById("addTitle").innerText = "➕ Add Employee";
-//     modal.classList.remove("hidden");
-//     fillAddDropdowns();
-//   };
-
-// });
 document.addEventListener("DOMContentLoaded", () => {
   const addBtn = document.getElementById("addBtn");
 
@@ -710,60 +649,6 @@ function closeAddModal() {
 }
 
 //SaveADD
-// document.getElementById("saveAdd").onclick = async () => {
-//   try {
-
-//     const empDesig = document.getElementById("addDesig").value;
-//     const superDesig = document.getElementById("addSuperDesig").value;
-
-//     if (!validateHierarchy(empDesig, superDesig)) {
-//       toast("Employee must be LOWER than Super designation");
-//       return;
-//     }
-
-//     const payload = {
-//       employee_id: document.getElementById("addEmpId").value,
-//       name: document.getElementById("addName").value,
-//       designation: empDesig,
-//       state: document.getElementById("addState").value,
-//       zone: document.getElementById("addZone").value,
-//       branch_name: document.getElementById("addBranch").value,
-//       branch_id: document.getElementById("addBranchId").value,
-
-//       super_id: document.getElementById("addSuperId").value,
-//       super_name: document.getElementById("addSuperName").value,
-//       super_designation: superDesig,
-
-//       status: document.getElementById("addStatus").value,
-//       password: document.getElementById("addPassword").value
-//     };
-
-//     if (!payload.name || !payload.employee_id) {
-//       toast("Name & Employee ID required");
-//       return;
-//     }
-
-//     if (!/^\d+$/.test(payload.employee_id)) {
-//       toast("Employee ID must be numbers only");
-//       return;
-//     }
-
-//     const res = await fetch(API, {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify(payload)
-//     });
-
-//     if (!res.ok) throw new Error();
-
-//     toast("Employee added successfully");
-//     closeAddModal();
-//     init();
-
-//   } catch (e) {
-//     toast("Failed to add employee");
-//   }
-// };
 const saveAddBtn = document.getElementById("saveAdd");
 
 if (saveAddBtn) {
@@ -967,45 +852,43 @@ function allowAlphaNumeric(el) {
 
 const suggestionsBox = document.getElementById("suggestions");
 
-function showSuggestions(q) {
-  const query = q.toLowerCase();
+// function showSuggestions(q) {
+//   const query = q.toLowerCase();
 
-  if (query.length < 2) {
-    suggestionsBox.style.display = "none";
-    return;
-  }
+//   if (query.length < 2) {
+//     suggestionsBox.style.display = "none";
+//     return;
+//   }
 
-  const matches = allData
-    .filter(emp =>
-      (emp.name || "").toLowerCase().includes(query) ||
-      (emp.employee_id || "").toString().includes(query)
-    )
-    .slice(0, 6); // limit like Google
+//   const matches = allData
+//     .filter(emp =>
+//       (emp.name || "").toLowerCase().includes(query) ||
+//       (emp.employee_id || "").toString().includes(query)
+//     )
+//     .slice(0, 6);
 
-  suggestionsBox.innerHTML = "";
+//   suggestionsBox.innerHTML = "";
 
-  if (!matches.length) {
-    suggestionsBox.style.display = "none";
-    return;
-  }
+//   if (!matches.length) {
+//     suggestionsBox.style.display = "none";
+//     return;
+//   }
 
-  matches.forEach(emp => {
-    const item = document.createElement("div");
-    item.textContent = `${emp.name} (${emp.employee_id})`;
+//   matches.forEach(emp => {
+//     const item = document.createElement("div");
+//     item.textContent = `${emp.name} (${emp.employee_id})`;
 
-    item.onclick = () => {
-      input.value = emp.name;
-      suggestionsBox.style.display = "none";
-      handleSearch(emp.name); // trigger search
-    };
+//     item.onclick = () => {
+//       input.value = emp.name;
+//       suggestionsBox.style.display = "none";
+//       handleSearch(emp.name);
+//     };
 
-    suggestionsBox.appendChild(item);
-  });
+//     suggestionsBox.appendChild(item);
+//   });
 
-  suggestionsBox.style.display = "block";
-}
-
-
+//   suggestionsBox.style.display = "block";
+// }
 
 //suggestion
 function showSuggestions(q) {
@@ -1044,8 +927,63 @@ function showSuggestions(q) {
 
   suggestionsBox.style.display = "block";
 
-  // 👇 auto hide after 5 sec inactivity
   suggestionTimer = setTimeout(() => {
     suggestionsBox.style.display = "none";
   }, 3000);
 }
+
+const filterType = document.getElementById("filterType");
+const filterValue = document.getElementById("filterValue");
+
+
+function getUniqueValues(key) {
+  return [...new Set(
+    currentData
+      .map(emp => emp[key])
+      .filter(v => v && v.toString().trim() !== "")
+  )].sort();
+}
+
+
+// populate dropdown values
+function updateFilterDropdown() {
+  const type = filterType.value;
+
+  filterValue.innerHTML = `<option value="">All</option>`;
+
+  if (!type || !currentData.length) return;
+
+  const values = [...new Set(
+    currentData
+      .map(emp => emp[type])
+      .filter(v => v && v.toString().trim() !== "")
+  )].sort();
+
+  values.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    filterValue.appendChild(opt);
+  });
+}
+
+function applyFilter() {
+  const type = filterType.value;
+  const value = filterValue.value;
+
+  let result = [...currentData];
+
+  if (type && value) {
+    result = result.filter(emp => emp[type] === value);
+  }
+
+  render(result);
+}
+
+
+filterType.addEventListener("change", () => {
+  updateFilterDropdown();
+  applyFilter(); // auto apply
+});
+
+filterValue.addEventListener("change", applyFilter);

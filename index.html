@@ -31,13 +31,38 @@
     </div>
   </header>
 
-  <div class="search-wrapper">
+  <!-- <div class="search-wrapper">
     <div class="search-box">
       <span class="icon">🔍</span>
       <input id="searchInput" type="text" placeholder="Search employees...">
       <div class="suggestions" id="suggestions"></div>
     </div>
+  </div> -->
+  <div class="search-wrapper">
+
+  <div class="search-box">
+    <span class="icon">🔍</span>
+    <input id="searchInput" type="text" placeholder="Search employees...">
+    <div class="suggestions" id="suggestions"></div>
   </div>
+
+  <div id="filterContainer" class="control-panel" style="display:none;">
+
+    <select id="filterType">
+      <option value="">Filter By</option>
+      <option value="state">State</option>
+      <option value="zone">Zone</option>
+      <option value="branch_name">Branch</option>
+      <option value="super_name">Super</option>
+    </select>
+
+    <select id="filterValue">
+      <option value="">Select value</option>
+    </select>
+
+  </div>
+
+</div>
 
   <div id="resultCount"></div>
 
@@ -126,89 +151,6 @@
 </div>
 
 <button id="addBtn" class="fab">+</button>
-
-<!-- <div id="addModal" class="modal hidden">
-  <div class="modal-box edit-card">
-
-    <div class="edit-header">
-      <h3>Add Employee</h3>
-      <button onclick="closeAddModal()">✖</button>
-    </div>
-
-    <div class="edit-grid">
-
-      <div class="field">
-        <label>Employee ID</label>
-        <input id="addEmpId" placeholder="00000">
-      </div>
-
-      <div class="field">
-        <label>Super ID</label>
-        <input id="addSuperId" placeholder="00000">
-      </div>
-
-      <div class="field">
-        <label>Employee Name</label>
-        <input id="addName">
-      </div>
-
-      <div class="field">
-        <label>Super Name</label>
-        <input id="addSuperName">
-      </div>
-
-      <div class="field">
-        <label>Employee Designation</label>
-        <select id="addDesig"></select>
-      </div>
-
-      <div class="field">
-        <label>Super Designation</label>
-        <select id="addSuperDesig"></select>
-      </div>
-
-      <div class="field">
-        <label>State</label>
-        <input id="addState">
-      </div>
-
-      <div class="field">
-        <label>Zone</label>
-        <input id="addZone">
-      </div>
-
-      <div class="field">
-        <label>Branch ID</label>
-        <input id="addBranchId" placeholder="0000">
-      </div>
-
-      <div class="field">
-        <label>Branch Name</label>
-        <input id="addBranch">
-      </div>
-
-      <div class="field">
-        <label>Status</label>
-        <select id="addStatus">
-          <option value="active">Active</option>
-          <option value="inactive">Deactive</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>Password</label>
-        <input id="addPassword" type="password">
-      </div>
-
-    </div>
-
-    <div class="modal-actions">AC
-      <button onclick="closeAddModal()">Cancel</button>
-      <button class="safe-btn" id="saveAdd">Save</button>
-    </div>
-
-  </div>
-</div> -->
 
 
 <div id="addModal" class="modal hidden">
