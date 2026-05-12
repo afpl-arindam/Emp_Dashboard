@@ -907,7 +907,11 @@ function getUniqueValues(key) {
 
 // Filter dropdown values
 function updateFilterDropdown() {
+
   const type = filterType.value;
+
+  // preserve selected value
+  const selectedValue = filterValue.value;
 
   filterValue.innerHTML = `<option value="">All</option>`;
 
@@ -923,6 +927,10 @@ function updateFilterDropdown() {
     const opt = document.createElement("option");
     opt.value = v;
     opt.textContent = v;
+
+    if (v === selectedValue) {
+      opt.selected = true;
+    }
     filterValue.appendChild(opt);
   });
 }
@@ -937,7 +945,7 @@ function applyFilter() {
     result = result.filter(emp => emp[type] === value);
   }
 
-  render(result);
+  render(result, false);
 }
 
 
