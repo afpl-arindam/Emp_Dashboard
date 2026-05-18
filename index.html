@@ -1,244 +1,246 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<title>Employee Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Employee Dashboard</title>
+  <link rel="icon" type="image/png" href="a-logo.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<div class="container">
+  <div class="container">
 
-  <header class="topbar">
-    <div class="header-wrapper">
-      <img src="logo.png" alt="Logo" class="logo">
-      <h1 class="header-title">Employee Dashboard</h1>
+    <header class="topbar">
+      <div class="header-wrapper">
+        <img src="logo.png" alt="Logo" class="logo">
+        <h1 class="header-title">Employee Dashboard</h1>
 
-      <div class="stats">
-        <div class="stat">
-          <span id="totalCount">--</span>
-          <small>Total</small>
+        <div class="stats">
+          <div class="stat">
+            <span id="totalCount">--</span>
+            <small>Total</small>
+          </div>
+
+          <div class="stat">
+            <span id="activeCount">--</span>
+            <small>Active</small>
+          </div>
         </div>
-
-        <div class="stat">
-          <span id="activeCount">--</span>
-          <small>Active</small>
-        </div>
+        <button id="themeToggle" class="theme-toggle">🌙</button>
       </div>
-      <button id="themeToggle" class="theme-toggle">🌙</button>
-    </div>
-  </header>
+    </header>
 
-  <!-- <div class="search-wrapper">
+    <!-- <div class="search-wrapper">
     <div class="search-box">
       <span class="icon">🔍</span>
       <input id="searchInput" type="text" placeholder="Search employees...">
       <div class="suggestions" id="suggestions"></div>
     </div>
   </div> -->
-  <div class="search-wrapper">
+    <div class="search-wrapper">
 
-  <div class="search-box">
-    <span class="icon">🔍</span>
-    <input id="searchInput" type="text" placeholder="Search employees...">
-    <div class="suggestions" id="suggestions"></div>
-  </div>
-
-  <div id="filterContainer" class="control-panel" style="display:none;">
-
-    <select id="filterType">
-      <option value="">Filter By</option>
-      <option value="state">State</option>
-      <option value="zone">Zone</option>
-      <option value="branch_name">Branch</option>
-      <option value="super_name">Super</option>
-    </select>
-
-    <select id="filterValue">
-      <option value="">Select value</option>
-    </select>
-
-  </div>
-
-</div>
-
-  <div id="resultCount"></div>
-
-  <div id="loader" class="loader">Loading....</div>
-
-  <div id="results" class="grid"></div>
-
-</div>
-
-<div id="toast"></div>
-
-<!-- Floating Theme Button -->
-<!-- <button id="themeToggle" class="theme-toggle">🌙</button> -->
-
-<div id="editModal" class="modal hidden">
-  <div class="modal-box edit-card">
-
-    <div class="edit-header">
-      <h3>✏️ Edit Employee</h3>
-      <span class="mini-id">ID: <b id="editEmpIdText"></b></span>
-    </div>
-
-    <div class="edit-grid">
-
-      <div class="field">
-        <label>Employee Name</label>
-        <input id="editName" type="text">
+      <div class="search-box">
+        <span class="icon">🔍</span>
+        <input id="searchInput" type="text" placeholder="Search employees...">
+        <div class="suggestions" id="suggestions"></div>
       </div>
 
-      <div class="field">
-        <label>Employee Designation</label>
-        <select id="editDesig"></select>
-      </div>
+      <div id="filterContainer" class="control-panel" style="display:none;">
 
-      <div class="field">
-        <label>State</label>
-        <input id="editState" type="text">
-      </div>
-
-      <div class="field">
-        <label>Zone</label>
-        <input id="editZone" type="text">
-      </div>
-
-      <div class="field">
-        <label>Branch ID</label>
-        <input id="editBranchId" type="text">
-      </div>
-
-      <div class="field">
-        <label>Branch Name</label>
-        <input id="editBranch" type="text">
-      </div>
-
-      <div class="field">
-        <label>Super ID</label>
-        <input id="editSuperId" type="text">
-      </div>
-
-      <div class="field">
-        <label>Super Name</label>
-        <input id="editSuperName" type="text">
-      </div>
-
-      <div class="field">
-        <label>Super Designation</label>
-        <select id="editSuperDesig"></select>
-      </div>
-
-      <div class="field">
-        <label>Status</label>
-        <select id="editStatus">
-          <option value="active">Active</option>
-          <option value="deactive">Deactive</option>
+        <select id="filterType">
+          <option value="">Filter By</option>
+          <option value="state">State</option>
+          <option value="zone">Zone</option>
+          <option value="branch_name">Branch</option>
+          <option value="super_name">Super</option>
         </select>
-      </div>
 
-    </div>
-
-    <div class="modal-actions">
-      <button id="cancelEdit">Cancel</button>
-      <button id="saveEdit" class="safe-btn">Save</button>
-    </div>
-
-  </div>
-</div>
-
-<button id="addBtn" class="fab">+</button>
-
-
-<div id="addModal" class="modal hidden">
-  <div class="modal-box edit-card">
-
-    <div class="edit-header">
-      <h3 id="addTitle">➕ Add Employee</h3>
-      <button onclick="closeAddModal()">✖</button>
-    </div>
-
-    <div class="edit-grid">
-
-      <div class="field">
-        <label>Employee ID</label>
-        <input id="addEmpId" inputmode="numeric" placeholder="00000">
-      </div>
-
-      <div class="field">
-        <label>Super ID</label>
-        <input id="addSuperId" placeholder="00000">
-      </div>
-
-      <div class="field">
-        <label>Employee Name</label>
-        <input id="addName">
-      </div>
-
-      <div class="field">
-        <label>Super Name</label>
-        <input id="addSuperName">
-      </div>
-
-      <div class="field">
-        <label>Employee Designation</label>
-        <select id="addDesig"></select>
-      </div>
-
-      <div class="field">
-        <label>Super Designation</label>
-        <select id="addSuperDesig"></select>
-      </div>
-
-      <div class="field">
-        <label>State</label>
-        <input id="addState">
-      </div>
-
-      <div class="field">
-        <label>Zone</label>
-        <input id="addZone">
-      </div>
-
-      <div class="field">
-        <label>Branch ID</label>
-        <input id="addBranchId" placeholder="0000">
-      </div>
-
-      <div class="field">
-        <label>Branch Name</label>
-        <input id="addBranch">
-      </div>
-
-      <div class="field">
-        <label>Status</label>
-        <select id="addStatus">
-          <option value="active">Active</option>
-          <option value="deactive">Deactive</option>
+        <select id="filterValue">
+          <option value="">Select value</option>
         </select>
-      </div>
 
-      <div class="field">
-        <label>Password</label>
-        <input id="addPassword" type="password">
       </div>
 
     </div>
 
-    <div class="modal-actions">
-      <button onclick="closeAddModal()">Cancel</button>
-      <button id="saveAdd" class="safe-btn" type="button">Save</button>
-    </div>
+    <div id="resultCount"></div>
+
+    <div id="loader" class="loader">Loading....</div>
+
+    <div id="results" class="grid"></div>
 
   </div>
-</div>
+
+  <div id="toast"></div>
+
+  <!-- Floating Theme Button -->
+  <!-- <button id="themeToggle" class="theme-toggle">🌙</button> -->
+
+  <div id="editModal" class="modal hidden">
+    <div class="modal-box edit-card">
+
+      <div class="edit-header">
+        <h3>✏️ Edit Employee</h3>
+        <span class="mini-id">ID: <b id="editEmpIdText"></b></span>
+      </div>
+
+      <div class="edit-grid">
+
+        <div class="field">
+          <label>Employee Name</label>
+          <input id="editName" type="text">
+        </div>
+
+        <div class="field">
+          <label>Employee Designation</label>
+          <select id="editDesig"></select>
+        </div>
+
+        <div class="field">
+          <label>State</label>
+          <input id="editState" type="text">
+        </div>
+
+        <div class="field">
+          <label>Zone</label>
+          <input id="editZone" type="text">
+        </div>
+
+        <div class="field">
+          <label>Branch ID</label>
+          <input id="editBranchId" type="text">
+        </div>
+
+        <div class="field">
+          <label>Branch Name</label>
+          <input id="editBranch" type="text">
+        </div>
+
+        <div class="field">
+          <label>Super ID</label>
+          <input id="editSuperId" type="text">
+        </div>
+
+        <div class="field">
+          <label>Super Name</label>
+          <input id="editSuperName" type="text">
+        </div>
+
+        <div class="field">
+          <label>Super Designation</label>
+          <select id="editSuperDesig"></select>
+        </div>
+
+        <div class="field">
+          <label>Status</label>
+          <select id="editStatus">
+            <option value="active">Active</option>
+            <option value="deactive">Deactive</option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="modal-actions">
+        <button id="cancelEdit">Cancel</button>
+        <button id="saveEdit" class="safe-btn">Save</button>
+      </div>
+
+    </div>
+  </div>
+
+  <button id="addBtn" class="fab">+</button>
 
 
-<script src="script.js"></script>
-<!-- <script src="main.js"></script> -->
+  <div id="addModal" class="modal hidden">
+    <div class="modal-box edit-card">
+
+      <div class="edit-header">
+        <h3 id="addTitle">➕ Add Employee</h3>
+        <button onclick="closeAddModal()">✖</button>
+      </div>
+
+      <div class="edit-grid">
+
+        <div class="field">
+          <label>Employee ID</label>
+          <input id="addEmpId" inputmode="numeric" placeholder="00000">
+        </div>
+
+        <div class="field">
+          <label>Super ID</label>
+          <input id="addSuperId" placeholder="00000">
+        </div>
+
+        <div class="field">
+          <label>Employee Name</label>
+          <input id="addName">
+        </div>
+
+        <div class="field">
+          <label>Super Name</label>
+          <input id="addSuperName">
+        </div>
+
+        <div class="field">
+          <label>Employee Designation</label>
+          <select id="addDesig"></select>
+        </div>
+
+        <div class="field">
+          <label>Super Designation</label>
+          <select id="addSuperDesig"></select>
+        </div>
+
+        <div class="field">
+          <label>State</label>
+          <input id="addState">
+        </div>
+
+        <div class="field">
+          <label>Zone</label>
+          <input id="addZone">
+        </div>
+
+        <div class="field">
+          <label>Branch ID</label>
+          <input id="addBranchId" placeholder="0000">
+        </div>
+
+        <div class="field">
+          <label>Branch Name</label>
+          <input id="addBranch">
+        </div>
+
+        <div class="field">
+          <label>Status</label>
+          <select id="addStatus">
+            <option value="active">Active</option>
+            <option value="deactive">Deactive</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Password</label>
+          <input id="addPassword" type="password">
+        </div>
+
+      </div>
+
+      <div class="modal-actions">
+        <button onclick="closeAddModal()">Cancel</button>
+        <button id="saveAdd" class="safe-btn" type="button">Save</button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <script src="script.js"></script>
+  <!-- <script src="main.js"></script> -->
 </body>
 <footer class="footer-credit">
   © 2026 Employee Dashboard •
@@ -246,4 +248,5 @@
     arindam@AFPL
   </a>
 </footer>
+
 </html>

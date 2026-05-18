@@ -60,7 +60,7 @@ async function init() {
     resultCount.innerText = "Start searching...";
 
   } catch (e) {
-    toast("Failed to load data","warning");
+    toast("Failed to load data", "warning");
   } finally {
     hideLoader();
   }
@@ -146,7 +146,7 @@ async function handleSearch(q) {
     render(cache[url], true);
 
   } catch (e) {
-    toast("API error","warning");
+    toast("API error", "warning");
   } finally {
     if (requestId === currentRequest) {
       hideLoader();
@@ -164,7 +164,7 @@ function validateAllRequired(ids) {
     const el = document.getElementById(id);
 
     if (!el || isEmpty(el.value)) {
-      toast("Please fill all required fields","error");
+      toast("Please fill all required fields", "error");
       if (el) el.focus();
       return false;
     }
@@ -467,16 +467,16 @@ function openEditModal(emp) {
   modal.classList.remove("hidden");
   fillEditDropdowns(emp);
 
-const statusSelect = document.getElementById("editStatus");
+  const statusSelect = document.getElementById("editStatus");
 
-const normalizedStatus =
-  (emp.status || "active").toLowerCase();
+  const normalizedStatus =
+    (emp.status || "active").toLowerCase();
 
-if ([...statusSelect.options].some(o => o.value === normalizedStatus)) {
-  statusSelect.value = normalizedStatus;
-} else {
-  statusSelect.value = "active";
-}
+  if ([...statusSelect.options].some(o => o.value === normalizedStatus)) {
+    statusSelect.value = normalizedStatus;
+  } else {
+    statusSelect.value = "active";
+  }
 
   document.getElementById("cancelEdit").onclick = closeModal;
   document.getElementById("saveEdit").onclick = saveEdit;
@@ -508,7 +508,7 @@ async function saveEdit() {
     const superDesig = document.getElementById("editSuperDesig").value;
 
     if (!validateHierarchy(empDesig, superDesig)) {
-      toast("Employee must be LOWER than Super designation","warning");
+      toast("Employee must be LOWER than Super designation", "warning");
       return;
     }
 
@@ -538,12 +538,12 @@ async function saveEdit() {
       throw new Error(msg || "API error");
     }
 
-    toast("Updated successfully","success");
+    toast("Updated successfully", "success");
     closeModal();
     init();
 
   } catch {
-    toast("Update failed","error");
+    toast("Update failed", "error");
   }
 }
 
@@ -576,7 +576,7 @@ function duplicateEmployee(emp) {
 
   // set super designation if valid
   const superSelect = document.getElementById("addSuperDesig");
- 
+
   if ([...superSelect.options].some(o => o.value === emp.super_designation)) {
     superSelect.value = emp.super_designation;
   }
@@ -621,12 +621,12 @@ function confirmDelete(emp) {
 
       if (!res.ok) throw new Error();
 
-      toast("Deleted successfully","success");
+      toast("Deleted successfully", "success");
       box.remove();
       init();
 
     } catch {
-      toast("Delete failed","error");
+      toast("Delete failed", "error");
     }
   };
 }
@@ -672,7 +672,7 @@ if (saveAddBtn) {
       "addPassword"
     ];
 
-  if (!validateAllRequired(requiredFields)) return;
+    if (!validateAllRequired(requiredFields)) return;
 
     isSubmitting = true;
     saveAddBtn.disabled = true;
@@ -682,7 +682,7 @@ if (saveAddBtn) {
       const superDesig = document.getElementById("addSuperDesig").value;
 
       if (!validateHierarchy(empDesig, superDesig)) {
-        toast("Employee must be LOWER than Super designation","warning");
+        toast("Employee must be LOWER than Super designation", "warning");
         return;
       }
 
@@ -709,12 +709,12 @@ if (saveAddBtn) {
 
       if (!res.ok) throw new Error();
 
-      toast("Employee added successfully","success");
+      toast("Employee added successfully", "success");
       closeAddModal();
       init();
 
     } catch (e) {
-      toast("Failed to add employee","error");
+      toast("Failed to add employee", "error");
     }
     finally {
       isSubmitting = false;
@@ -742,7 +742,7 @@ function fillAddDropdowns() {
   }, 0);
   const fragment = document.createDocumentFragment();
 
-    [...hierarchy].reverse().forEach(d => {
+  [...hierarchy].reverse().forEach(d => {
     const opt = document.createElement("option");
     opt.value = d;
     opt.textContent = d;
@@ -770,7 +770,7 @@ function fillEditDropdowns(emp) {
 
   const fragment = document.createDocumentFragment();
 
-    [...hierarchy].reverse().forEach(d => {
+  [...hierarchy].reverse().forEach(d => {
     const opt = document.createElement("option");
     opt.value = d;
     opt.textContent = d;
